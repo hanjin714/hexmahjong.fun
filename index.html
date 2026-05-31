@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#145f3d">
+  <title>海克斯麻将 H5</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main id="app" class="app">
+    <canvas id="gameCanvas" aria-label="海克斯麻将牌桌"></canvas>
+
+    <section id="overlay" class="overlay">
+      <div class="panel">
+        <h1 id="overlayTitle">选择城邦</h1>
+        <p id="overlayHint">每局先确定全局规则，再选择你的海克斯强化。</p>
+        <div id="overlayGrid" class="option-grid"></div>
+        <button
+          id="overlayConfirm"
+          class="primary-button hidden"
+          type="button"
+          onclick="this.setAttribute('data-start-request', String(Date.now()))"
+          onpointerup="this.setAttribute('data-start-request', String(Date.now()))"
+          ontouchend="this.setAttribute('data-start-request', String(Date.now()))"
+        >开始游戏</button>
+      </div>
+    </section>
+
+    <section id="resultOverlay" class="result-overlay" hidden>
+      <div class="result-burst" aria-hidden="true"></div>
+      <div id="resultParticles" class="result-particles" aria-hidden="true"></div>
+      <div class="result-card">
+        <span id="resultEyebrow" class="result-eyebrow">终局</span>
+        <h2 id="resultTitle">胜利</h2>
+        <strong id="resultPattern" class="result-pattern">牌型</strong>
+        <div id="resultScore" class="result-score">+0</div>
+        <div id="resultBinds" class="result-binds"></div>
+        <div id="resultTiles" class="result-tiles"></div>
+        <div class="result-actions">
+          <button id="resultRestart" type="button">再来一局</button>
+          <button id="resultClose" type="button">查看牌桌</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="hud">
+      <div class="status">
+        <span id="stageText" class="stage">1-1 城邦</span>
+        <strong id="statusText">选择城邦</strong>
+        <span id="subStatusText">城邦 -> 海克斯 -> 羁绊</span>
+      </div>
+      <div class="round-panel">
+        <div class="timer-ring">
+          <svg viewBox="0 0 44 44" aria-hidden="true">
+            <circle class="timer-bg" cx="22" cy="22" r="18"></circle>
+            <circle id="timerFill" class="timer-fill" cx="22" cy="22" r="18"></circle>
+          </svg>
+          <strong id="timerText">--</strong>
+        </div>
+        <span id="deckText">牌山 --</span>
+      </div>
+      <div id="skillBadges" class="badges"></div>
+      <div id="augmentTrack" class="augment-track" aria-label="海克斯阶段"></div>
+    </section>
+
+    <div id="actionPrompt" class="action-prompt" hidden></div>
+
+    <nav class="actions" aria-label="游戏操作">
+      <button type="button" data-action="win"><strong>胡牌</strong><span></span></button>
+      <button type="button" data-action="pass"><strong>过牌</strong><span></span></button>
+      <button type="button" data-action="vitality"><strong>活力</strong><span></span></button>
+      <button type="button" data-action="cookie"><strong>拆牌</strong><span></span></button>
+      <button type="button" data-action="restart"><strong>重开</strong><span></span></button>
+    </nav>
+  </main>
+
+  <script src="./game.js"></script>
+</body>
+</html>
