@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hanjin714.github.io/HexMahjong/sitemap.xml
