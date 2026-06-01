@@ -5,6 +5,10 @@ const overlayTitle = document.getElementById("overlayTitle");
 const overlayHint = document.getElementById("overlayHint");
 const overlayGrid = document.getElementById("overlayGrid");
 const overlayConfirm = document.getElementById("overlayConfirm");
+const manualOpen = document.getElementById("manualOpen");
+const manualOverlay = document.getElementById("manualOverlay");
+const manualClose = document.getElementById("manualClose");
+const languageToggle = document.getElementById("languageToggle");
 const statusText = document.getElementById("statusText");
 const subStatusText = document.getElementById("subStatusText");
 const stageText = document.getElementById("stageText");
@@ -24,6 +28,12 @@ const resultBinds = document.getElementById("resultBinds");
 const resultTiles = document.getElementById("resultTiles");
 const resultRestart = document.getElementById("resultRestart");
 const resultClose = document.getElementById("resultClose");
+const skillDetailOverlay = document.getElementById("skillDetailOverlay");
+const skillDetailTier = document.getElementById("skillDetailTier");
+const skillDetailIcon = document.getElementById("skillDetailIcon");
+const skillDetailName = document.getElementById("skillDetailName");
+const skillDetailDesc = document.getElementById("skillDetailDesc");
+const skillDetailClose = document.getElementById("skillDetailClose");
 const actionBar = document.querySelector(".actions");
 const actionButtons = {
   win: document.querySelector('[data-action="win"]'),
@@ -32,6 +42,258 @@ const actionButtons = {
   cookie: document.querySelector('[data-action="cookie"]'),
   restart: document.querySelector('[data-action="restart"]')
 };
+
+const LANG_STORAGE_KEY = "hexMahjongLanguage";
+let currentLang = localStorage.getItem(LANG_STORAGE_KEY) || "zh";
+if (!["zh", "en"].includes(currentLang)) currentLang = "zh";
+
+const i18n = {
+  zh: {
+    langToggle: "EN",
+    title: "海克斯麻将 H5",
+    canvasLabel: "海克斯麻将牌桌",
+    overlay: {
+      cityTitle: "选择城邦",
+      cityHint: "第一层全局规则会改变整局节奏。",
+      augmentTitle: count => `海克斯强化 ${count}/${MAX_HEX_SKILLS}`,
+      augmentInitial: "开局三选一，确定你的第一条运营路线。",
+      augmentStage: "阶段奖励：从三项强化中选择一个，改变接下来的牌局。",
+      confirm: "开始游戏",
+      manual: "玩法说明"
+    },
+    manual: {
+      eyebrow: "海克斯麻将 H5",
+      title: "玩法说明",
+      close: "关闭玩法说明",
+      sections: [
+        ["一局怎么玩", "先选城邦，再选海克斯。开局后你和 3 名 AI 轮流摸牌、出牌，满足牌型时点击胡牌。第 1、3、6 轮会获得海克斯强化，最多持有 3 个。"],
+        ["牌与操作", ["牌组包含筒、条、万三种花色，每种 1 到 9，每张 4 份。", "混子可以补缺失点数、对子或刻子；右上角城邦/海克斯详情会列出本局每个混子对应的具体牌。", "点击手牌选中，再点同一张即可打出；倒计时结束会自动出牌。", "底部只显示当前可用操作：胡牌、过牌、活力、拆牌、重开。"]],
+        ["城邦规则", ["净水监狱：传统规则，无海克斯，适合先熟悉摸打。", "皮尔特沃夫金库：每轮筹码主题，当前保留为强化入口。", "祖安实验室：加入城邦额外混子，成型更快但 AI 也更危险。", "艾欧尼亚道场：只能胡清一色，需要提前规划花色。", "诺克萨斯角斗场：点炮惩罚主题，当前保留为后续结算扩展。", "班德尔城传送门：每 3 轮随机和一名 AI 交换一张手牌。"]],
+        ["海克斯强化", ["饼干海克斯：主动，每 3 轮一次，将 3 以上的筒/条拆成两张 1 和一张余数牌。", "混子成双：被动，额外加入一张指定混子牌，可在右上角详情查看。", "千丝增幅器、铜墙铁饼、万法归宗：经济型海克斯，立即获得对应花色 3 张牌。", "活力再生：主动，弃两张孤牌换摸两张，冷却 2 轮。", "全能吸血：反应型路线展示，后续会扩展拿牌效果。"]],
+        ["胡牌公式", ["公式符号：AAA=三张一样，ABC=同花色连续三张，XX=对子，J=混子。", "标准理解：4 组牌 + 1 对，例如 AAA + BBB + ABC + ABC + XX。当前原型用更快的牌型判定来适配 H5 节奏。", "清一色大成：同一花色覆盖 1-9，例如 1筒2筒3筒...9筒；缺口可用 J 补。", "七对子：XX + XX + XX + XX + XX + XX + XX，J + J 也能算一对。", "四刻成型：AAA + BBB + CCC + DDD；AA + J 或 A + J + J 可补刻。", "偏门成势：同一花色牌 + J >= 10，作为低门槛成型出口。", "羁绊额外加分：万法归一、千丝万缕、圆满无缺、三花聚顶、四喜临门。"]],
+        ["对局提示", ["右上角海克斯徽章可以点击查看详情。", "可拆、将弃、新摸牌会在手牌上高亮。", "底部胶囊提示会展示当前可胡、可拆或活力换牌结果。", "结算会展示最终牌型、分数、触发羁绊和最终手牌。"]]
+      ]
+    },
+    suits: { character: "筒", bamboo: "条", wan: "万" },
+    joker: (suit, rank) => `混(${suit}${rank})`,
+    players: { human: "你", ai: index => `AI ${index}` },
+    cities: {
+      pureWaterPrison: ["净水监狱", "传统麻将，无海克斯可选。"],
+      piltoverVault: ["皮尔特沃夫金库", "每轮所有玩家额外获得1个基础筹码。"],
+      zaunLab: ["祖安实验室", "加入一张指定城邦混子，高风险高回报。"],
+      ioniaDojo: ["艾欧尼亚道场", "只能胡清一色，迫使你提前规划。"],
+      noxusArena: ["诺克萨斯角斗场", "点炮惩罚翻倍，出牌更刺激。"],
+      bandleCityPortal: ["班德尔城传送门", "每三轮随机交换手牌，局势会变。"]
+    },
+    skills: {
+      cookie: ["饼干海克斯", "主动：每3轮一次，将条/筒数字3以上的牌拆成三张。"],
+      jokerDouble: ["混子成双", "被动：额外加入一张指定混子牌。"],
+      thousandSilk: ["千丝增幅器", "经济：立即获得3张条子，帮助千丝万缕羁绊成型。"],
+      bronzeWall: ["铜墙铁饼", "经济：立即获得3张筒子，朝圆满无缺方向运营。"],
+      tenThousandLaw: ["万法归宗", "经济：立即获得3张万字，强化万法归一路线。"],
+      vitalityRegen: ["活力再生", "主动：弃两张孤牌换两张，冷却2轮。"],
+      lifeSteal: ["全能吸血", "反应：后续版本可拿取他人弃牌，当前提供羁绊分。"]
+    },
+    tiers: { "棱彩": "棱彩", "黄金": "黄金", "白银": "白银" },
+    types: { active: "主动", economy: "经济", passive: "被动", reaction: "反应", resource: "资源" },
+    actions: { win: "胡牌", pass: "过牌", vitality: "活力", cookie: "拆牌", restart: "重开", auto: "托管出牌", changeCity: "换城邦" },
+    hud: { city: "城邦", augment: "海克斯", battle: "对局", gameOver: "终局", ready: "准备", deck: count => `牌山 ${count}` },
+    messages: {
+      chooseCity: "选择城邦",
+      citySub: "城邦 -> 海克斯 -> 羁绊",
+      chooseAugment: "选择海克斯",
+      yourTurn: "你的回合",
+      selectCityFirst: "先选择城邦",
+      cityFirstSub: "城邦是第一层全局规则",
+      startSub: city => `${city} | 点击手牌选择，再点一次出牌`,
+      drawSub: tile => `摸到 ${tile} | 点击手牌出牌`,
+      playerDiscard: (name, tile) => `${name}打出 ${tile}`,
+      deckRound: (deck, round) => `牌山 ${deck} | 第 ${round} 轮`,
+      drawGame: "流局",
+      deckEmpty: "牌山已空",
+      won: (name, pattern) => `${name}胡了：${pattern}`,
+      triggered: names => `触发 ${names}`,
+      score: score => `得分 ${score}`,
+      basicWin: "基础胡牌",
+      defeat: "惜败",
+      victory: "胜利",
+      resultEnd: "终局",
+      bandle: "班德尔城传送门",
+      exchange: target => `你和 AI ${target} 交换了一张手牌`,
+      selectTile: tile => `选择 ${tile}`,
+      selectTileSub: "再点一次出牌，或点拆牌/胡牌",
+      timeout: "倒计时结束",
+      autoDiscard: tile => `自动打出 ${tile}`,
+      autoPass: "托管出牌",
+      autoPassSub: tile => `打出 ${tile}，进入下一家`,
+      cannotWin: "暂时不能胡",
+      cannotWinSub: "继续运营羁绊和海克斯",
+      starting: "正在开始游戏",
+      startingSub: "正在发牌和生成海克斯牌局",
+      startFail: "开局失败",
+      gotSkill: (skill, tile) => `获得 ${skill}，摸到 ${tile}`
+    },
+    prompts: {
+      win: (pattern, detail) => `可胡：${pattern}，${detail}`,
+      winBasic: score => `基础分 ${score}`,
+      cookie: (source, results) => `可拆：${source} -> ${results}`,
+      vitality: (tiles, draws) => `可用活力：弃 ${tiles} -> 摸 ${draws} 张`
+    },
+    patterns: { flush: "清一色大成", pairs: "七对子", triples: "四刻成型", offSuit: "偏门成势" },
+    binds: { wan: "万法归一", bamboo: "千丝万缕", character: "圆满无缺", threeFlowers: "三花聚顶", fourJoy: "四喜临门" },
+    tileHints: { readySplit: "可拆", willSplit: "将拆", willDiscard: "将弃", draw2: "摸2", new: "新", joker: "混", wildcard: "万能" },
+    jokerPanel: {
+      title: "本局混子",
+      fixed: "固定混子",
+      city: "城邦额外混子",
+      hex: "海克斯额外混子",
+      copies: count => `${count} 张`,
+      none: "无额外混子"
+    },
+    errors: {
+      vitalityInactive: "活力再生未激活",
+      chooseSkillFirst: "选择该海克斯后才能使用",
+      vitalityCooldown: left => `还需 ${left} 轮`,
+      vitalityCooling: "活力再生冷却中",
+      vitalityFail: "活力再生失败",
+      notEnough: "手牌或牌山不足",
+      vitalityDone: "弃两张换两张",
+      cookieInactive: "饼干海克斯未激活",
+      cookieCooling: "饼干海克斯冷却中",
+      cookieInvalid: "这张牌不能拆",
+      cookieInvalidSub: "饼干只能拆3以上的条/筒",
+      cookieDone: "饼干海克斯",
+      cookieDoneSub: text => `${text}，冷却3轮`
+    }
+  },
+  en: {
+    langToggle: "中",
+    title: "Hex Mahjong H5",
+    canvasLabel: "Hex Mahjong table",
+    overlay: {
+      cityTitle: "Choose City-State",
+      cityHint: "Pick the global rule that shapes this run.",
+      augmentTitle: count => `Hex Augment ${count}/${MAX_HEX_SKILLS}`,
+      augmentInitial: "Choose one opening augment to define your route.",
+      augmentStage: "Stage reward: choose one of three augments.",
+      confirm: "Start Game",
+      manual: "How to Play"
+    },
+    manual: {
+      eyebrow: "Hex Mahjong H5",
+      title: "How to Play",
+      close: "Close rules",
+      sections: [
+        ["Core Loop", "Choose a city-state, then choose augments. You and 3 AI players draw and discard in turn. Win when your hand satisfies a pattern. Augments appear on rounds 1, 3, and 6; you can hold up to 3."],
+        ["Tiles & Controls", ["The deck has Dots, Bamboo, and Wan, ranks 1-9, four copies each.", "Jokers fill missing ranks, pairs, or triplets; top-right city/augment details list the exact tile behind every joker this game.", "Tap a tile to select it, tap it again to discard. If time runs out, a tile is discarded automatically.", "The bottom bar only shows actions currently available."]],
+        ["City-State Rules", ["Purewater Prison: classic rules, no augments.", "Piltover Vault: economy theme, reserved for future chip systems.", "Zaun Lab: adds a city bonus joker, faster hands for everyone.", "Ionia Dojo: only flush-style wins are allowed.", "Noxus Arena: discard penalty theme, reserved for future scoring.", "Bandle Portal: every 3 rounds, swap one random tile with an AI."]],
+        ["Hex Augments", ["Cookie Hex: active, once every 3 rounds, split a Dot/Bamboo tile rank 3+ into two 1s and a remainder tile.", "Joker Double: passive, adds one specified joker tile; review it from the top-right details.", "Silk Amplifier, Bronze Wall, and Ten Thousand Law are economy augments that grant 3 suited tiles.", "Vitality Regen: active, discard two isolated tiles and draw two, cooldown 2 rounds.", "Omnivamp: reaction route preview, future version will expand steal effects."]],
+        ["Winning Formula", ["Symbols: AAA = triplet, ABC = same-suit sequence, XX = pair, J = joker.", "Standard shape: 4 groups + 1 pair, such as AAA + BBB + ABC + ABC + XX. This prototype uses faster pattern checks for H5 pacing.", "Full Flush: one suit covers ranks 1-9, such as Dot1-Dot9; J can fill missing ranks.", "Seven Pairs: XX + XX + XX + XX + XX + XX + XX; J + J can count as one pair.", "Four Triplets: AAA + BBB + CCC + DDD; AA + J or A + J + J can complete a triplet.", "Off-Suit Momentum: same-suit tiles + J >= 10, a lower-threshold win route.", "Traits add bonus score: suit routes, Three Flowers, and Four Joy."]],
+        ["Game Tips", ["Click the augment badges on the top right to review details.", "Splittable, discard-targeted, and newly drawn tiles are highlighted.", "The bottom prompt previews win, split, or vitality outcomes.", "The result screen shows pattern, score, traits, and final hand."]]
+      ]
+    },
+    suits: { character: "Dot", bamboo: "Bamboo", wan: "Wan" },
+    joker: (suit, rank) => `Joker(${suit}${rank})`,
+    players: { human: "You", ai: index => `AI ${index}` },
+    cities: {
+      pureWaterPrison: ["Purewater Prison", "Classic mahjong. No augments."],
+      piltoverVault: ["Piltover Vault", "All players gain 1 base chip each round."],
+      zaunLab: ["Zaun Lab", "Adds an extra fixed joker tile. High risk, high reward."],
+      ioniaDojo: ["Ionia Dojo", "Only flush wins are allowed. Plan early."],
+      noxusArena: ["Noxus Arena", "Discard penalties are doubled."],
+      bandleCityPortal: ["Bandle Portal", "Every 3 rounds, hands get shuffled by a swap."]
+    },
+    skills: {
+      cookie: ["Cookie Hex", "Active: once every 3 rounds, split a Dot/Bamboo tile rank 3+ into three tiles."],
+      jokerDouble: ["Joker Double", "Passive: adds one extra specified joker tile."],
+      thousandSilk: ["Silk Amplifier", "Economy: gain 3 Bamboo tiles to build the Silk route."],
+      bronzeWall: ["Bronze Wall", "Economy: gain 3 Dot tiles to build the Perfect Circle route."],
+      tenThousandLaw: ["Ten Thousand Law", "Economy: gain 3 Wan tiles to build the Wan route."],
+      vitalityRegen: ["Vitality Regen", "Active: discard two isolated tiles and draw two. Cooldown 2 rounds."],
+      lifeSteal: ["Omnivamp", "Reaction: future versions can take discards; currently adds trait pressure."]
+    },
+    tiers: { "棱彩": "Prismatic", "黄金": "Gold", "白银": "Silver" },
+    types: { active: "Active", economy: "Economy", passive: "Passive", reaction: "Reaction", resource: "Resource" },
+    actions: { win: "Win", pass: "Pass", vitality: "Vitality", cookie: "Split", restart: "Restart", auto: "Auto discard", changeCity: "Change city" },
+    hud: { city: "City", augment: "Augment", battle: "Battle", gameOver: "Game Over", ready: "Ready", deck: count => `Deck ${count}` },
+    messages: {
+      chooseCity: "Choose City-State",
+      citySub: "City -> Hex -> Traits",
+      chooseAugment: "Choose Augment",
+      yourTurn: "Your Turn",
+      selectCityFirst: "Choose a city first",
+      cityFirstSub: "City-states are the global rule layer",
+      startSub: city => `${city} | Tap a tile, then tap again to discard`,
+      drawSub: tile => `Drew ${tile} | Tap a tile to discard`,
+      playerDiscard: (name, tile) => `${name} discarded ${tile}`,
+      deckRound: (deck, round) => `Deck ${deck} | Round ${round}`,
+      drawGame: "Draw",
+      deckEmpty: "Deck is empty",
+      won: (name, pattern) => `${name} won: ${pattern}`,
+      triggered: names => `Triggered ${names}`,
+      score: score => `Score ${score}`,
+      basicWin: "Base Win",
+      defeat: "Defeat",
+      victory: "Victory",
+      resultEnd: "End",
+      bandle: "Bandle Portal",
+      exchange: target => `You swapped one tile with AI ${target}`,
+      selectTile: tile => `Selected ${tile}`,
+      selectTileSub: "Tap again to discard, or use Split/Win",
+      timeout: "Time is up",
+      autoDiscard: tile => `Auto discarded ${tile}`,
+      autoPass: "Auto discard",
+      autoPassSub: tile => `Discarded ${tile}; next player`,
+      cannotWin: "Cannot win yet",
+      cannotWinSub: "Keep building traits and augments",
+      starting: "Starting game",
+      startingSub: "Dealing tiles and preparing augments",
+      startFail: "Failed to start",
+      gotSkill: (skill, tile) => `Gained ${skill}, drew ${tile}`
+    },
+    prompts: {
+      win: (pattern, detail) => `Ready: ${pattern}, ${detail}`,
+      winBasic: score => `base ${score}`,
+      cookie: (source, results) => `Can split: ${source} -> ${results}`,
+      vitality: (tiles, draws) => `Vitality: discard ${tiles} -> draw ${draws}`
+    },
+    patterns: { flush: "Full Flush", pairs: "Seven Pairs", triples: "Four Triplets", offSuit: "Off-Suit Momentum" },
+    binds: { wan: "Ten Thousand Unity", bamboo: "Silken Threads", character: "Perfect Circle", threeFlowers: "Three Flowers", fourJoy: "Four Joy" },
+    tileHints: { readySplit: "Split", willSplit: "Split", willDiscard: "Discard", draw2: "Draw 2", new: "New", joker: "Joker", wildcard: "Wild" },
+    jokerPanel: {
+      title: "Jokers This Game",
+      fixed: "Fixed Joker",
+      city: "City Bonus Joker",
+      hex: "Augment Bonus Joker",
+      copies: count => `${count} tile${count > 1 ? "s" : ""}`,
+      none: "No bonus joker"
+    },
+    errors: {
+      vitalityInactive: "Vitality Regen inactive",
+      chooseSkillFirst: "Choose this augment first",
+      vitalityCooldown: left => `${left} rounds left`,
+      vitalityCooling: "Vitality cooling down",
+      vitalityFail: "Vitality failed",
+      notEnough: "Not enough tiles or deck",
+      vitalityDone: "Discard two, draw two",
+      cookieInactive: "Cookie Hex inactive",
+      cookieCooling: "Cookie Hex cooling down",
+      cookieInvalid: "This tile cannot split",
+      cookieInvalidSub: "Cookie only splits Dot/Bamboo rank 3+",
+      cookieDone: "Cookie Hex",
+      cookieDoneSub: text => `${text}, cooldown 3 rounds`
+    }
+  }
+};
+
+function tr(path, ...args) {
+  const value = path.split(".").reduce((object, key) => object?.[key], i18n[currentLang]);
+  return typeof value === "function" ? value(...args) : value;
+}
+
+function joinList(items) {
+  return items.join(currentLang === "zh" ? "、" : ", ");
+}
 
 const suits = [
   { id: "character", name: "筒", color: "#252a2f" },
@@ -42,18 +304,18 @@ const suits = [
 const cityStates = [
   { id: "pureWaterPrison", name: "净水监狱", color: "#2f4f4f", desc: "传统麻将，无海克斯可选。", hex: false, art: 0 },
   { id: "piltoverVault", name: "皮尔特沃夫金库", color: "#b8860b", desc: "每轮所有玩家额外获得1个基础筹码。", chipBonus: 1, hex: true, art: 1 },
-  { id: "zaunLab", name: "祖安实验室", color: "#8b38cc", desc: "混子数量翻倍，高风险高回报。", jokerMultiplier: 2, hex: true, art: 2 },
+  { id: "zaunLab", name: "祖安实验室", color: "#8b38cc", desc: "加入一张指定城邦混子，高风险高回报。", jokerBonus: true, hex: true, art: 2 },
   { id: "ioniaDojo", name: "艾欧尼亚道场", color: "#228b22", desc: "只能胡清一色，迫使你提前规划。", onlyFlush: true, hex: true, art: 3 },
   { id: "noxusArena", name: "诺克萨斯角斗场", color: "#c72d3e", desc: "点炮惩罚翻倍，出牌更刺激。", discardPenalty: 2, hex: true, art: 4 },
   { id: "bandleCityPortal", name: "班德尔城传送门", color: "#0faeb5", desc: "每三轮随机交换手牌，局势会变。", exchange: true, hex: true, art: 5 }
 ];
 
 const hexSkills = [
-  { id: "cookie", name: "饼干海克斯", color: "#d9367a", icon: "拆", tier: "棱彩", desc: "主动：将条/筒数字3以上的牌拆成三张。", type: "active" },
-  { id: "jokerDouble", name: "混子成双", color: "#8b5bd6", icon: "混", tier: "黄金", desc: "被动：本局混子数量额外翻倍。", type: "passive" },
-  { id: "thousandSilk", name: "千丝增幅器", color: "#228b22", icon: "条", tier: "白银", desc: "立即获得3张条子，帮助千丝万缕羁绊成型。", suit: "bamboo" },
-  { id: "bronzeWall", name: "铜墙铁饼", color: "#b97835", icon: "筒", tier: "白银", desc: "立即获得3张筒子，朝圆满无缺方向运营。", suit: "character" },
-  { id: "tenThousandLaw", name: "万法归宗", color: "#4169e1", icon: "万", tier: "白银", desc: "立即获得3张万字，强化万法归一路线。", suit: "wan" },
+  { id: "cookie", name: "饼干海克斯", color: "#d9367a", icon: "拆", tier: "棱彩", desc: "主动：每3轮一次，将条/筒数字3以上的牌拆成三张。", type: "active" },
+  { id: "jokerDouble", name: "混子成双", color: "#8b5bd6", icon: "混", tier: "黄金", desc: "被动：额外加入一张指定混子牌。", type: "passive" },
+  { id: "thousandSilk", name: "千丝增幅器", color: "#228b22", icon: "条", tier: "白银", desc: "经济：立即获得3张条子，帮助千丝万缕羁绊成型。", suit: "bamboo", type: "economy" },
+  { id: "bronzeWall", name: "铜墙铁饼", color: "#b97835", icon: "筒", tier: "白银", desc: "经济：立即获得3张筒子，朝圆满无缺方向运营。", suit: "character", type: "economy" },
+  { id: "tenThousandLaw", name: "万法归宗", color: "#4169e1", icon: "万", tier: "白银", desc: "经济：立即获得3张万字，强化万法归一路线。", suit: "wan", type: "economy" },
   { id: "vitalityRegen", name: "活力再生", color: "#e65f3a", icon: "活", tier: "黄金", desc: "主动：弃两张孤牌换两张，冷却2轮。", type: "active" },
   { id: "lifeSteal", name: "全能吸血", color: "#a62f42", icon: "吸", tier: "黄金", desc: "反应：后续版本可拿取他人弃牌，当前提供羁绊分。", type: "reaction" }
 ];
@@ -78,10 +340,13 @@ const state = {
   tileRects: [],
   discardRects: [],
   scores: [0, 0, 0, 0],
+  jokerRules: [],
   lastVitalityRound: -99,
+  lastCookieRound: -99,
   started: false,
   augmentDraftsTaken: 0,
   pendingAugmentRound: null,
+  currentAugmentOffers: [],
   timerRemaining: 0,
   turnDeadline: null,
   lastTimerBeep: null
@@ -115,9 +380,47 @@ function makeTile(suit, rank, isJoker = false) {
 
 function tileName(tile) {
   if (!tile) return "";
-  const suit = suits.find(item => item.id === tile.suit);
-  if (tile.isJoker) return `混(${suit.name}${tile.rank})`;
-  return `${suit.name}${tile.rank}`;
+  const suit = suitName(tile.suit);
+  if (tile.isJoker) return tr("joker", suit, tile.rank);
+  return currentLang === "zh" ? `${suit}${tile.rank}` : `${tile.rank} ${suit}`;
+}
+
+function suitName(suitId) {
+  return i18n[currentLang].suits[suitId] || suitId;
+}
+
+function cityName(city) {
+  return i18n[currentLang].cities[city.id]?.[0] || city.name;
+}
+
+function cityDesc(city) {
+  return i18n[currentLang].cities[city.id]?.[1] || city.desc;
+}
+
+function skillName(skillOrId) {
+  const id = typeof skillOrId === "string" ? skillOrId : skillOrId?.id;
+  return i18n[currentLang].skills[id]?.[0] || hexSkills.find(item => item.id === id)?.name || id;
+}
+
+function skillDesc(skillOrId) {
+  const id = typeof skillOrId === "string" ? skillOrId : skillOrId?.id;
+  return i18n[currentLang].skills[id]?.[1] || hexSkills.find(item => item.id === id)?.desc || "";
+}
+
+function tierName(tier) {
+  return i18n[currentLang].tiers[tier] || tier;
+}
+
+function playerName(index) {
+  return index === 0 ? tr("players.human") : tr("players.ai", index);
+}
+
+function patternName(patternId) {
+  return i18n[currentLang].patterns[patternId] || patternId;
+}
+
+function bindName(bindId) {
+  return i18n[currentLang].binds[bindId] || bindId;
 }
 
 function createDeck() {
@@ -128,12 +431,43 @@ function createDeck() {
     }
   }
 
-  let jokerCount = 2 * (state.city?.jokerMultiplier || 1);
-  if (state.selectedSkills.includes("jokerDouble")) jokerCount *= 2;
-  for (let i = 0; i < jokerCount; i += 1) {
-    deck.push(makeTile(suits[i % suits.length].id, 5, true));
+  state.jokerRules = createJokerRules();
+  for (const rule of state.jokerRules) {
+    for (let i = 0; i < rule.copies; i += 1) {
+      deck.push(makeTile(rule.suit, rule.rank, true));
+    }
   }
   return shuffle(deck);
+}
+
+function createJokerRules() {
+  const rules = [
+    { source: "fixed", suit: "character", rank: 5, copies: 2 }
+  ];
+
+  if (state.city?.jokerBonus) {
+    rules.push({ source: "city", suit: "bamboo", rank: 5, copies: 1, cityId: state.city.id });
+  }
+
+  if (state.selectedSkills.includes("jokerDouble")) {
+    rules.push({ source: "hex", suit: "wan", rank: 5, copies: 1, skillId: "jokerDouble" });
+  }
+
+  return rules;
+}
+
+function jokerRuleLabel(rule) {
+  const sourceLabels = {
+    fixed: tr("jokerPanel.fixed"),
+    city: tr("jokerPanel.city"),
+    hex: tr("jokerPanel.hex")
+  };
+  return `${sourceLabels[rule.source] || rule.source}: ${tileName(rule)} (${tr("jokerPanel.copies", rule.copies)})`;
+}
+
+function jokerRulesText() {
+  const rules = state.jokerRules.length ? state.jokerRules : createJokerRules();
+  return rules.map(jokerRuleLabel).join(currentLang === "zh" ? "\n" : "\n");
 }
 
 function shuffle(items) {
@@ -155,7 +489,7 @@ function sortHand(hand) {
 
 function startGame() {
   if (!state.city) {
-    setMessage("先选择城邦", "城邦是第一层全局规则");
+    setMessage(tr("messages.selectCityFirst"), tr("messages.cityFirstSub"));
     showCitySelection();
     return;
   }
@@ -163,7 +497,7 @@ function startGame() {
   stopTurnTimer();
   state.deck = createDeck();
   state.players = Array.from({ length: 4 }, (_, index) => ({
-    name: index === 0 ? "你" : `AI ${index}`,
+    name: playerName(index),
     isAI: index > 0,
     hand: [],
     skills: index === 0 ? [...state.selectedSkills] : []
@@ -173,6 +507,7 @@ function startGame() {
   state.discards = [];
   state.selectedTileId = null;
   state.lastVitalityRound = -99;
+  state.lastCookieRound = -99;
   state.scores = [0, 0, 0, 0];
   state.started = true;
   state.lastTimerBeep = null;
@@ -188,7 +523,7 @@ function startGame() {
   state.phase = "playing";
   hideOverlay();
   playSound("start");
-  setMessage("你的回合", `${state.city.name} | 点击手牌选择，再点一次出牌`);
+  setMessage(tr("messages.yourTurn"), tr("messages.startSub", cityName(state.city)));
   renderBadges();
   startPlayerTurnTimer();
   render();
@@ -223,7 +558,7 @@ function discardTile(playerIndex, tileId) {
   state.discards.push({ tile, playerIndex });
   state.selectedTileId = null;
   playSound(playerIndex === 0 ? "discard" : "aiDiscard");
-  setMessage(`${player.name}打出 ${tileName(tile)}`, `牌山 ${state.deck.length} | 第 ${state.round} 轮`);
+  setMessage(tr("messages.playerDiscard", playerName(playerIndex), tileName(tile)), tr("messages.deckRound", state.deck.length, state.round));
   return true;
 }
 
@@ -232,7 +567,7 @@ function nextTurn() {
   if (!state.deck.length) {
     state.phase = "gameOver";
     playSound("end");
-    setMessage("流局", "牌山已空");
+    setMessage(tr("messages.drawGame"), tr("messages.deckEmpty"));
     render();
     return;
   }
@@ -250,7 +585,7 @@ function nextTurn() {
   if (state.players[state.currentPlayer].isAI) {
     window.setTimeout(runAITurn, 420);
   } else {
-    setMessage("你的回合", `摸到 ${tileName(state.lastDrawn)} | 点击手牌出牌`);
+    setMessage(tr("messages.yourTurn"), tr("messages.drawSub", tileName(state.lastDrawn)));
     startPlayerTurnTimer();
   }
 }
@@ -302,13 +637,13 @@ function checkWin(hand) {
 
   const binds = checkBinds(hand);
   if (suitSet.size === 1 && hasRanks(nonJokers, [1, 2, 3, 4, 5, 6, 7, 8, 9], jokerCount)) {
-    return { name: "清一色大成", score: 260 + bindScore(binds), binds };
+    return { id: "flush", score: 260 + bindScore(binds), binds };
   }
 
   let pairs = 0;
   for (const count of counts.values()) pairs += Math.floor(count / 2);
   pairs += Math.floor(jokerCount / 2);
-  if (pairs >= 7) return { name: "七对子", score: 140 + bindScore(binds), binds };
+  if (pairs >= 7) return { id: "pairs", score: 140 + bindScore(binds), binds };
 
   let triples = 0;
   let freeJokers = jokerCount;
@@ -319,11 +654,11 @@ function checkWin(hand) {
       triples += 1;
     }
   }
-  if (triples >= 4) return { name: "四刻成型", score: 120 + bindScore(binds), binds };
+  if (triples >= 4) return { id: "triples", score: 120 + bindScore(binds), binds };
 
   const strongestSuitCount = Math.max(0, ...[...suitSet].map(suit => nonJokers.filter(tile => tile.suit === suit).length));
   if (strongestSuitCount + jokerCount >= 10 && hand.length >= 14) {
-    return { name: "偏门成势", score: 90 + bindScore(binds), binds };
+    return { id: "offSuit", score: 90 + bindScore(binds), binds };
   }
   return null;
 }
@@ -340,15 +675,14 @@ function checkBinds(hand) {
   for (const suit of suits) {
     const suitTiles = nonJokers.filter(tile => tile.suit === suit.id);
     if (suitTiles.length >= 11 && hasRanks(suitTiles, [1, 9], hand.length - nonJokers.length)) {
-      const names = { wan: "万法归一", bamboo: "千丝万缕", character: "圆满无缺" };
-      results.push({ name: names[suit.id], score: 1000 });
+      results.push({ id: suit.id, score: 1000 });
     }
   }
   const suitCounts = suits.map(suit => nonJokers.filter(tile => tile.suit === suit.id).length);
-  if (suitCounts.filter(count => count >= 2).length >= 3) results.push({ name: "三花聚顶", score: 50 });
+  if (suitCounts.filter(count => count >= 2).length >= 3) results.push({ id: "threeFlowers", score: 50 });
   let pairs = 0;
   for (const count of countByTile(hand).values()) pairs += Math.floor(count / 2);
-  if (pairs >= 4) results.push({ name: "四喜临门", score: 30 });
+  if (pairs >= 4) results.push({ id: "fourJoy", score: 30 });
   return results;
 }
 
@@ -359,9 +693,10 @@ function bindScore(binds) {
 function endGame(winnerIndex, result) {
   stopTurnTimer();
   state.phase = "gameOver";
-  const name = state.players[winnerIndex].name;
+  const name = playerName(winnerIndex);
+  const pattern = patternName(result.id);
   playSound(winnerIndex === 0 ? "win" : "end");
-  setMessage(`${name}胡了：${result.name}`, result.binds.length ? `触发 ${result.binds.map(bind => bind.name).join("、")}` : `得分 ${result.score}`);
+  setMessage(tr("messages.won", name, pattern), result.binds.length ? tr("messages.triggered", joinList(result.binds.map(bind => bindName(bind.id)))) : tr("messages.score", result.score));
   render();
   showResultOverlay(winnerIndex, result);
 }
@@ -370,16 +705,16 @@ function showResultOverlay(winnerIndex, result) {
   const isHumanWinner = winnerIndex === 0;
   resultOverlay.hidden = false;
   resultOverlay.classList.toggle("defeat", !isHumanWinner);
-  resultEyebrow.textContent = `${state.round}-${state.currentPlayer + 1} 终局`;
-  resultTitle.textContent = isHumanWinner ? "胜利" : "惜败";
-  resultPattern.textContent = `${state.players[winnerIndex].name} 胡了：${result.name}`;
+  resultEyebrow.textContent = `${state.round}-${state.currentPlayer + 1} ${tr("messages.resultEnd")}`;
+  resultTitle.textContent = isHumanWinner ? tr("messages.victory") : tr("messages.defeat");
+  resultPattern.textContent = tr("messages.won", playerName(winnerIndex), patternName(result.id));
   resultScore.textContent = `${isHumanWinner ? "+" : ""}${result.score}`;
 
   resultBinds.innerHTML = "";
-  const binds = result.binds.length ? result.binds : [{ name: "基础胡牌", score: result.score }];
+  const binds = result.binds.length ? result.binds : [{ id: "basicWin", score: result.score }];
   for (const bind of binds) {
     const item = document.createElement("span");
-    item.textContent = `${bind.name} +${bind.score}`;
+    item.textContent = `${bind.id === "basicWin" ? tr("messages.basicWin") : bindName(bind.id)} +${bind.score}`;
     resultBinds.appendChild(item);
   }
 
@@ -422,7 +757,7 @@ function maybeBandleExchange() {
   const theirs = randomTile(state.players[target].hand);
   if (!mine || !theirs) return;
   swapTile(0, mine.id, target, theirs.id);
-  setMessage("班德尔城传送门", `你和 AI ${target} 交换了一张手牌`);
+  setMessage(tr("messages.bandle"), tr("messages.exchange", target));
 }
 
 function randomTile(hand) {
@@ -440,18 +775,18 @@ function swapTile(a, aId, b, bId) {
 
 function useVitality() {
   if (!state.selectedSkills.includes("vitalityRegen")) {
-    setMessage("活力再生未激活", "选择该海克斯后才能使用");
+    setMessage(tr("errors.vitalityInactive"), tr("errors.chooseSkillFirst"));
     return;
   }
   if (state.currentPlayer !== 0 || state.phase !== "playing") return;
   if (state.round - state.lastVitalityRound < 2) {
-    setMessage("活力再生冷却中", `还需 ${2 - (state.round - state.lastVitalityRound)} 轮`);
+    setMessage(tr("errors.vitalityCooling"), tr("errors.vitalityCooldown", 2 - (state.round - state.lastVitalityRound)));
     return;
   }
   const player = state.players[0];
   const candidates = sortHand(player.hand).filter(tile => !tile.isJoker).slice(0, 2);
   if (candidates.length < 2 || state.deck.length < 2) {
-    setMessage("活力再生失败", "手牌或牌山不足");
+    setMessage(tr("errors.vitalityFail"), tr("errors.notEnough"));
     return;
   }
   for (const tile of candidates) discardTile(0, tile.id);
@@ -459,45 +794,174 @@ function useVitality() {
   drawFromDeck(0);
   state.lastVitalityRound = state.round;
   playSound("skill");
-  setMessage("活力再生", "弃两张换两张");
+  setMessage(skillName("vitalityRegen"), tr("errors.vitalityDone"));
   render();
 }
 
 function useCookie() {
   if (!state.selectedSkills.includes("cookie")) {
-    setMessage("饼干海克斯未激活", "选择该海克斯后才能使用");
+    setMessage(tr("errors.cookieInactive"), tr("errors.chooseSkillFirst"));
+    return;
+  }
+  if (state.round - state.lastCookieRound < 3) {
+    setMessage(tr("errors.cookieCooling"), tr("errors.vitalityCooldown", 3 - (state.round - state.lastCookieRound)));
     return;
   }
   const player = state.players[0];
   const tile = player.hand.find(item => item.id === state.selectedTileId);
   if (!tile || tile.isJoker || tile.suit === "wan" || tile.rank < 3) {
-    setMessage("这张牌不能拆", "饼干只能拆3以上的条/筒");
+    setMessage(tr("errors.cookieInvalid"), tr("errors.cookieInvalidSub"));
     return;
   }
   player.hand = player.hand.filter(item => item.id !== tile.id);
   player.hand.push(makeTile(tile.suit, 1), makeTile(tile.suit, 1), makeTile(tile.suit, tile.rank - 2));
   state.selectedTileId = null;
+  state.lastCookieRound = state.round;
   playSound("skill");
-  setMessage("饼干海克斯", `${tileName(tile)} 拆成 ${suits.find(s => s.id === tile.suit).name}1、${suits.find(s => s.id === tile.suit).name}1、${suits.find(s => s.id === tile.suit).name}${tile.rank - 2}`);
+  const splitText = `${tileName(tile)} -> ${[makePreviewTile(tile.suit, 1), makePreviewTile(tile.suit, 1), makePreviewTile(tile.suit, tile.rank - 2)].map(tileName).join(currentLang === "zh" ? "、" : ", ")}`;
+  setMessage(tr("errors.cookieDone"), tr("errors.cookieDoneSub", splitText));
   render();
 }
 
 function renderBadges() {
   skillBadges.innerHTML = "";
+  if (state.city) {
+    const cityBadge = document.createElement("button");
+    cityBadge.className = "badge city-badge";
+    cityBadge.type = "button";
+    cityBadge.dataset.cityDetail = state.city.id;
+    cityBadge.setAttribute("aria-label", currentLang === "zh" ? `查看${cityName(state.city)}规则` : `View ${cityName(state.city)} rules`);
+    cityBadge.textContent = cityName(state.city);
+    skillBadges.appendChild(cityBadge);
+  }
   for (let i = 0; i < MAX_HEX_SKILLS; i += 1) {
     const skillId = state.selectedSkills[i];
-    const badge = document.createElement("span");
+    const badge = document.createElement(skillId ? "button" : "span");
     badge.className = skillId ? "badge" : "badge empty";
     if (!skillId) {
-      badge.textContent = `海克斯槽 ${i + 1}`;
+      badge.textContent = currentLang === "zh" ? `海克斯槽 ${i + 1}` : `Augment Slot ${i + 1}`;
       skillBadges.appendChild(badge);
       continue;
     }
     const skill = hexSkills.find(item => item.id === skillId);
-    badge.textContent = skill?.name || "未知海克斯";
+    badge.type = "button";
+    badge.dataset.skillId = skillId;
+    badge.setAttribute("aria-label", currentLang === "zh" ? `查看${skillName(skill)}详情` : `View ${skillName(skill)} details`);
+    badge.textContent = skillName(skill);
     skillBadges.appendChild(badge);
   }
   updateHud();
+}
+
+function showSkillDetail(skillId) {
+  const skill = hexSkills.find(item => item.id === skillId);
+  if (!skill) return;
+  skillDetailTier.textContent = `${tierName(skill.tier)} · ${skillTypeName(skill)}`;
+  skillDetailIcon.textContent = skill.icon;
+  skillDetailIcon.style.background = `linear-gradient(145deg, ${skill.color}66, rgba(0,0,0,0.22))`;
+  skillDetailName.textContent = skillName(skill);
+  skillDetailDesc.textContent = skill.id === "jokerDouble"
+    ? `${skillDesc(skill)}\n\n${tr("jokerPanel.title")}\n${jokerRulesText()}`
+    : skillDesc(skill);
+  skillDetailOverlay.hidden = false;
+  playSound("select");
+}
+
+function showCityDetail() {
+  if (!state.city) return;
+  skillDetailTier.textContent = currentLang === "zh" ? "城邦规则" : "City-State Rule";
+  skillDetailIcon.textContent = currentLang === "zh" ? "城" : "C";
+  skillDetailIcon.style.background = `linear-gradient(145deg, ${state.city.color}88, rgba(0,0,0,0.22))`;
+  skillDetailName.textContent = cityName(state.city);
+  const jokerText = jokerRulesText();
+  skillDetailDesc.textContent = `${cityDesc(state.city)}\n\n${tr("jokerPanel.title")}\n${jokerText || tr("jokerPanel.none")}`;
+  skillDetailOverlay.hidden = false;
+  playSound("select");
+}
+
+function skillTypeName(skill) {
+  return i18n[currentLang].types[skill.type] || tr("types.resource");
+}
+
+function hideSkillDetail() {
+  skillDetailOverlay.hidden = true;
+}
+
+function showManual() {
+  renderManual();
+  manualOverlay.hidden = false;
+  playSound("select");
+}
+
+function hideManual() {
+  manualOverlay.hidden = true;
+}
+
+function renderManual() {
+  document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
+  document.title = tr("title");
+  canvas.setAttribute("aria-label", tr("canvasLabel"));
+  actionBar.setAttribute("aria-label", currentLang === "zh" ? "游戏操作" : "Game actions");
+  augmentTrack.setAttribute("aria-label", currentLang === "zh" ? "海克斯阶段" : "Augment stages");
+  languageToggle.textContent = tr("langToggle");
+  manualOpen.textContent = tr("overlay.manual");
+  overlayConfirm.textContent = tr("overlay.confirm");
+  manualClose.setAttribute("aria-label", tr("manual.close"));
+  manualOverlay.querySelector(".manual-eyebrow").textContent = tr("manual.eyebrow");
+  manualOverlay.querySelector("h2").textContent = tr("manual.title");
+  const content = manualOverlay.querySelector(".manual-content");
+  content.innerHTML = "";
+  for (const [title, body] of tr("manual.sections")) {
+    const section = document.createElement("section");
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+    section.appendChild(heading);
+    if (Array.isArray(body)) {
+      const list = document.createElement("ul");
+      for (const text of body) {
+        const item = document.createElement("li");
+        item.textContent = text;
+        list.appendChild(item);
+      }
+      section.appendChild(list);
+    } else {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = body;
+      section.appendChild(paragraph);
+    }
+    content.appendChild(section);
+  }
+  resultRestart.textContent = currentLang === "zh" ? "再来一局" : "Play Again";
+  resultClose.textContent = currentLang === "zh" ? "查看牌桌" : "View Table";
+  skillDetailClose.setAttribute("aria-label", currentLang === "zh" ? "关闭海克斯详情" : "Close augment details");
+}
+
+function refreshLanguage() {
+  renderManual();
+  if (state.phase === "city") {
+    showCitySelection();
+    return;
+  }
+  if (state.phase === "augment") {
+    renderAugmentSelection({ initial: !state.started, offers: state.currentAugmentOffers });
+    return;
+  }
+  if (state.phase === "playing") {
+    if (state.currentPlayer === 0) {
+      setMessage(tr("messages.yourTurn"), state.lastDrawn ? tr("messages.drawSub", tileName(state.lastDrawn)) : tr("messages.startSub", cityName(state.city)));
+    } else {
+      setMessage(`${playerName(state.currentPlayer)} ${tr("hud.battle")}`, tr("messages.deckRound", state.deck.length, state.round));
+    }
+  }
+  renderBadges();
+  updateHud();
+  render();
+}
+
+function toggleLanguage() {
+  currentLang = currentLang === "zh" ? "en" : "zh";
+  localStorage.setItem(LANG_STORAGE_KEY, currentLang);
+  refreshLanguage();
 }
 
 function renderAugmentTrack() {
@@ -513,7 +977,7 @@ function renderAugmentTrack() {
     const isDone = Boolean(chosen) || (state.round > round && state.selectedSkills.length > index);
     node.className = `track-node${isDone ? " done" : ""}${isActive ? " active" : ""}`;
     const skill = hexSkills.find(item => item.id === chosen);
-    node.textContent = skill ? `${round}-1 ${skill.name}` : `${round}-1 海克斯`;
+    node.textContent = skill ? `${round}-1 ${skillName(skill)}` : `${round}-1 ${tr("hud.augment")}`;
     augmentTrack.appendChild(node);
   });
 }
@@ -539,6 +1003,7 @@ function canUseVitality() {
 function getCookiePlan() {
   if (state.phase !== "playing" || state.currentPlayer !== 0 || !state.players[0]) return null;
   if (!state.selectedSkills.includes("cookie")) return null;
+  if (state.round - state.lastCookieRound < 3) return null;
   const tile = state.players[0].hand.find(item => item.id === state.selectedTileId);
   if (!tile || tile.isJoker || tile.suit === "wan" || tile.rank < 3) return null;
   return {
@@ -566,13 +1031,13 @@ function setActionDetail(button, label, detail = "") {
 
 function actionHintText() {
   const win = getHumanWinResult();
-  if (win) return `可胡：${win.name}，${win.binds.length ? `触发 ${win.binds.map(bind => bind.name).join("、")}` : `基础分 ${win.score}`}`;
+  if (win) return tr("prompts.win", patternName(win.id), win.binds.length ? tr("messages.triggered", joinList(win.binds.map(bind => bindName(bind.id)))) : tr("prompts.winBasic", win.score));
 
   const cookie = getCookiePlan();
-  if (cookie) return `可拆：${tileName(cookie.source)} -> ${cookie.results.map(tileName).join("、")}`;
+  if (cookie) return tr("prompts.cookie", tileName(cookie.source), joinList(cookie.results.map(tileName)));
 
   const vitality = getVitalityPlan();
-  if (vitality) return `可用活力：弃 ${vitality.discards.map(tileName).join("、")} -> 摸 ${vitality.draws} 张`;
+  if (vitality) return tr("prompts.vitality", joinList(vitality.discards.map(tileName)), vitality.draws);
 
   return "";
 }
@@ -591,11 +1056,11 @@ function updateActionButtons() {
   actionButtons.vitality.hidden = !vitality;
   actionButtons.cookie.hidden = !cookie;
 
-  setActionDetail(actionButtons.pass, "过牌", "托管出牌");
-  setActionDetail(actionButtons.restart, "重开", "换城邦");
-  if (win) setActionDetail(actionButtons.win, "胡牌", `${win.name} +${win.score}`);
-  if (vitality) setActionDetail(actionButtons.vitality, "活力", `${vitality.discards.map(tileName).join("、")} -> 摸2`);
-  if (cookie) setActionDetail(actionButtons.cookie, "拆牌", `${tileName(cookie.source)} -> ${cookie.results.map(tileName).join("、")}`);
+  setActionDetail(actionButtons.pass, tr("actions.pass"), tr("actions.auto"));
+  setActionDetail(actionButtons.restart, tr("actions.restart"), tr("actions.changeCity"));
+  if (win) setActionDetail(actionButtons.win, tr("actions.win"), `${patternName(win.id)} +${win.score}`);
+  if (vitality) setActionDetail(actionButtons.vitality, tr("actions.vitality"), `${joinList(vitality.discards.map(tileName))} -> ${currentLang === "zh" ? "摸2" : "Draw 2"}`);
+  if (cookie) setActionDetail(actionButtons.cookie, tr("actions.cookie"), `${tileName(cookie.source)} -> ${joinList(cookie.results.map(tileName))}`);
 
   actionPrompt.hidden = !hint || actionBar.hidden;
   actionPrompt.textContent = hint;
@@ -611,13 +1076,13 @@ function setMessage(message, subMessage = "") {
 
 function updateHud() {
   const phaseNames = {
-    city: "1-1 城邦",
-    augment: `${state.pendingAugmentRound || 1}-1 海克斯`,
-    playing: `${state.round || 1}-${state.currentPlayer + 1} 对局`,
-    gameOver: "终局"
+    city: `1-1 ${tr("hud.city")}`,
+    augment: `${state.pendingAugmentRound || 1}-1 ${tr("hud.augment")}`,
+    playing: `${state.round || 1}-${state.currentPlayer + 1} ${tr("hud.battle")}`,
+    gameOver: tr("hud.gameOver")
   };
-  stageText.textContent = phaseNames[state.phase] || "准备";
-  deckText.textContent = `牌山 ${state.deck?.length ?? "--"}`;
+  stageText.textContent = phaseNames[state.phase] || tr("hud.ready");
+  deckText.textContent = tr("hud.deck", state.deck?.length ?? "--");
   const pct = state.turnDeadline ? Math.max(0, Math.min(1, state.timerRemaining / TURN_SECONDS)) : 0;
   timerText.textContent = state.turnDeadline ? `${Math.ceil(state.timerRemaining)}` : "--";
   timerFill.style.strokeDashoffset = `${113 * (1 - pct)}`;
@@ -670,7 +1135,7 @@ function autoDiscardForTimeout() {
   const fallback = selected || chooseAIDiscard(player.hand);
   if (!fallback) return;
   discardTile(0, fallback.id);
-  setMessage("倒计时结束", `自动打出 ${tileName(fallback)}`);
+  setMessage(tr("messages.timeout"), tr("messages.autoDiscard", tileName(fallback)));
   render();
   window.setTimeout(nextTurn, 260);
 }
@@ -774,9 +1239,9 @@ function drawCoverImage(image, x, y, w, h) {
 
 function drawOpponents(box) {
   const names = [
-    { text: `AI 2 手牌 ${state.players[2]?.hand.length || 0}`, x: box.w / 2, y: box.safeTop + 26 },
-    { text: `AI 1 手牌 ${state.players[1]?.hand.length || 0}`, x: 76, y: box.h / 2 },
-    { text: `AI 3 手牌 ${state.players[3]?.hand.length || 0}`, x: box.w - 76, y: box.h / 2 }
+    { text: currentLang === "zh" ? `AI 2 手牌 ${state.players[2]?.hand.length || 0}` : `AI 2 Hand ${state.players[2]?.hand.length || 0}`, x: box.w / 2, y: box.safeTop + 26 },
+    { text: currentLang === "zh" ? `AI 1 手牌 ${state.players[1]?.hand.length || 0}` : `AI 1 Hand ${state.players[1]?.hand.length || 0}`, x: 76, y: box.h / 2 },
+    { text: currentLang === "zh" ? `AI 3 手牌 ${state.players[3]?.hand.length || 0}` : `AI 3 Hand ${state.players[3]?.hand.length || 0}`, x: box.w - 76, y: box.h / 2 }
   ];
   for (const item of names) {
     ctx.fillStyle = "rgba(0,0,0,0.24)";
@@ -824,7 +1289,7 @@ function drawTileActionHint(tile, x, y, w, h) {
   ctx.fillStyle = hint.fill;
   roundRect(x + w / 2 - 22, y - 25, 44, 18, 9);
   ctx.fill();
-  ctx.fillStyle = "#fff";
+      ctx.fillStyle = "#fff";
   ctx.font = "800 11px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -844,11 +1309,12 @@ function drawTileActionHint(tile, x, y, w, h) {
 function tileActionHint(tile) {
   if (state.phase !== "playing" || state.currentPlayer !== 0) return null;
 
-  const cookieCandidate = state.selectedSkills.includes("cookie") && !tile.isJoker && tile.suit !== "wan" && tile.rank >= 3;
+  const cookieReady = state.selectedSkills.includes("cookie") && state.round - state.lastCookieRound >= 3;
+  const cookieCandidate = cookieReady && !tile.isJoker && tile.suit !== "wan" && tile.rank >= 3;
   if (cookieCandidate) {
     const results = [makePreviewTile(tile.suit, 1), makePreviewTile(tile.suit, 1), makePreviewTile(tile.suit, tile.rank - 2)];
     return {
-      label: tile.id === state.selectedTileId ? "将拆" : "可拆",
+      label: tile.id === state.selectedTileId ? tr("tileHints.willSplit") : tr("tileHints.readySplit"),
       detail: `-> ${results.map(tileName).join(" ")}`,
       color: "#ff6cac",
       fill: "rgba(217, 54, 122, 0.92)"
@@ -858,8 +1324,8 @@ function tileActionHint(tile) {
   const vitality = getVitalityPlan();
   if (vitality?.discards.some(item => item.id === tile.id)) {
     return {
-      label: "将弃",
-      detail: "-> 摸2",
+      label: tr("tileHints.willDiscard"),
+      detail: `-> ${tr("tileHints.draw2")}`,
       color: "#ff8a54",
       fill: "rgba(230, 95, 58, 0.92)"
     };
@@ -955,7 +1421,7 @@ function drawTileFace(tile, x, y, w, h, selected = false, compact = false, hot =
     ctx.font = "900 11px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("新", x + w - 10, y0 + 2);
+    ctx.fillText(tr("tileHints.new"), x + w - 10, y0 + 2);
   }
 
   ctx.restore();
@@ -966,7 +1432,7 @@ function drawJokerFace(tile, x, y, w, h, compact, suit) {
   ctx.textBaseline = "middle";
   ctx.fillStyle = "#7a2f18";
   ctx.font = `900 ${Math.floor(w * (compact ? 0.42 : 0.5))}px sans-serif`;
-  ctx.fillText("混", x + w / 2, y + h * 0.35);
+  ctx.fillText(tr("tileHints.joker"), x + w / 2, y + h * 0.35);
 
   ctx.fillStyle = "rgba(122, 47, 24, 0.16)";
   roundRect(x + w * 0.18, y + h * 0.52, w * 0.64, h * 0.3, 7);
@@ -974,11 +1440,11 @@ function drawJokerFace(tile, x, y, w, h, compact, suit) {
 
   ctx.fillStyle = suit.color;
   ctx.font = `900 ${Math.floor(w * (compact ? 0.24 : 0.27))}px sans-serif`;
-  ctx.fillText(`${suit.name}${tile.rank}`, x + w / 2, y + h * 0.67);
+  ctx.fillText(currentLang === "zh" ? `${suitName(tile.suit)}${tile.rank}` : `${tile.rank} ${suitName(tile.suit)}`, x + w / 2, y + h * 0.67);
 
   ctx.fillStyle = "rgba(122,47,24,0.72)";
   ctx.font = `800 ${Math.max(8, Math.floor(w * 0.16))}px sans-serif`;
-  ctx.fillText("万能", x + w / 2, y + h * 0.86);
+  ctx.fillText(tr("tileHints.wildcard"), x + w / 2, y + h * 0.86);
 }
 
 function drawStandardTileFace(tile, x, y, w, h, compact, suit) {
@@ -1001,7 +1467,7 @@ function drawWanTile(rank, x, y, w, h, compact, color) {
   ctx.fillText(`${rank}`, x + w / 2, y + h * 0.38);
   ctx.font = `900 ${Math.floor(w * (compact ? 0.36 : 0.48))}px serif`;
   ctx.fillText("万", x + w / 2, y + h * 0.68);
-  drawTileCorner(rank, "万", x, y, w, h, color, compact);
+  drawTileCorner(rank, suitName("wan"), x, y, w, h, color, compact);
 }
 
 function drawCircleTile(rank, x, y, w, h, compact, color) {
@@ -1019,7 +1485,7 @@ function drawCircleTile(rank, x, y, w, h, compact, color) {
     ctx.arc(cx, cy, r * 0.48, 0, Math.PI * 2);
     ctx.fill();
   }
-  drawTileCorner(rank, "筒", x, y, w, h, color, compact);
+  drawTileCorner(rank, suitName("character"), x, y, w, h, color, compact);
 }
 
 function drawBambooTile(rank, x, y, w, h, compact) {
@@ -1027,7 +1493,7 @@ function drawBambooTile(rank, x, y, w, h, compact) {
   for (const [px, py] of spots) {
     drawBambooStem(x + w * px, y + h * py, Math.max(10, h * (compact ? 0.16 : 0.18)), w * 0.055);
   }
-  drawTileCorner(rank, "条", x, y, w, h, "#16823f", compact);
+  drawTileCorner(rank, suitName("bamboo"), x, y, w, h, "#16823f", compact);
 }
 
 function drawBambooStem(cx, cy, length, width) {
@@ -1088,17 +1554,18 @@ function roundRect(x, y, w, h, r) {
 function showCitySelection() {
   stopTurnTimer();
   hideResultOverlay();
+  hideManual();
   resetSessionState();
   state.phase = "city";
   overlay.classList.remove("hidden");
-  setMessage("选择城邦", "城邦 -> 海克斯 -> 羁绊");
-  overlayTitle.textContent = "选择城邦";
-  overlayHint.textContent = "第一层全局规则会改变整局节奏。";
+  setMessage(tr("messages.chooseCity"), tr("messages.citySub"));
+  overlayTitle.textContent = tr("overlay.cityTitle");
+  overlayHint.textContent = tr("overlay.cityHint");
   overlayConfirm.classList.add("hidden");
   overlayGrid.innerHTML = "";
   overlayGrid.classList.remove("augment-grid");
   for (const city of cityStates) {
-    const button = optionButton(city.name, city.desc, city.color);
+    const button = optionButton(cityName(city), cityDesc(city), city.color);
     applyCityCardArt(button, city.art);
     button.addEventListener("click", () => {
       playSound("select");
@@ -1134,10 +1601,13 @@ function resetSessionState() {
   state.selectedTileId = null;
   state.lastDrawn = null;
   state.scores = [0, 0, 0, 0];
+  state.jokerRules = [];
   state.lastVitalityRound = -99;
+  state.lastCookieRound = -99;
   state.started = false;
   state.augmentDraftsTaken = 0;
   state.pendingAugmentRound = null;
+  state.currentAugmentOffers = [];
   state.lastTimerBeep = null;
 }
 
@@ -1165,17 +1635,23 @@ function showAugmentSelection({ initial = false, resume = false } = {}) {
   state.pendingAugmentRound = state.round || 1;
   overlay.classList.remove("hidden");
   playSound(initial ? "augment" : "stage");
-  setMessage("选择海克斯", `${state.city.name} | 第 ${state.selectedSkills.length + 1}/${MAX_HEX_SKILLS} 个强化`);
-  overlayTitle.textContent = `海克斯强化 ${state.selectedSkills.length + 1}/${MAX_HEX_SKILLS}`;
+  const offers = rollAugmentOffers();
+  state.currentAugmentOffers = offers.map(skill => skill.id);
+  renderAugmentSelection({ initial, resume, offers: state.currentAugmentOffers });
+}
+
+function renderAugmentSelection({ initial = false, resume = false, offers = [] } = {}) {
+  setMessage(tr("messages.chooseAugment"), `${cityName(state.city)} | ${currentLang === "zh" ? `第 ${state.selectedSkills.length + 1}/${MAX_HEX_SKILLS} 个强化` : `${state.selectedSkills.length + 1}/${MAX_HEX_SKILLS}`}`);
+  overlayTitle.textContent = tr("overlay.augmentTitle", state.selectedSkills.length + 1);
   overlayHint.textContent = initial
-    ? "开局三选一，确定你的第一条运营路线。"
-    : "阶段奖励：从三项强化中选择一个，改变接下来的牌局。";
+    ? tr("overlay.augmentInitial")
+    : tr("overlay.augmentStage");
   overlayConfirm.classList.add("hidden");
   overlayGrid.innerHTML = "";
 
-  const offers = rollAugmentOffers();
   overlayGrid.classList.add("augment-grid");
-  for (const skill of offers) {
+  for (const skillId of offers) {
+    const skill = hexSkills.find(item => item.id === skillId) || skillId;
     const button = augmentButton(skill);
     button.addEventListener("click", () => {
       selectAugment(skill.id, { initial, resume });
@@ -1192,9 +1668,9 @@ function rollAugmentOffers() {
 }
 
 function augmentButton(skill) {
-  const button = optionButton(skill.name, skill.desc, skill.color);
+  const button = optionButton(skillName(skill), skillDesc(skill), skill.color);
   button.classList.add("augment-option");
-  button.innerHTML = `<span class="option-icon">${skill.icon}</span><span class="tier">${skill.tier}</span><strong>${skill.name}</strong><span>${skill.desc}</span>`;
+  button.innerHTML = `<span class="option-icon">${skill.icon}</span><span class="tier">${tierName(skill.tier)}</span><strong>${skillName(skill)}</strong><span>${skillDesc(skill)}</span>`;
   return button;
 }
 
@@ -1203,6 +1679,7 @@ function selectAugment(skillId, { initial = false } = {}) {
   playSound("selectAugment");
   state.selectedSkills.push(skillId);
   state.augmentDraftsTaken = state.selectedSkills.length;
+  state.currentAugmentOffers = [];
   applyNewAugment(skillId);
   renderBadges();
 
@@ -1214,7 +1691,7 @@ function selectAugment(skillId, { initial = false } = {}) {
   hideOverlay();
   state.phase = "playing";
   drawFromDeck(0);
-  setMessage("你的回合", `获得 ${hexSkills.find(skill => skill.id === skillId).name}，摸到 ${tileName(state.lastDrawn)}`);
+  setMessage(tr("messages.yourTurn"), tr("messages.gotSkill", skillName(skillId), tileName(state.lastDrawn)));
   startPlayerTurnTimer();
   render();
 }
@@ -1232,8 +1709,8 @@ function applyNewAugment(skillId) {
   }
 
   if (skill.id === "jokerDouble") {
-    const newJokers = suits.map(suit => makeTile(suit.id, 5, true));
-    state.deck = shuffle(state.deck.concat(newJokers));
+    state.jokerRules = createJokerRules();
+    state.deck = shuffle(state.deck.concat(makeTile("wan", 5, true)));
   }
 }
 
@@ -1262,7 +1739,7 @@ function handleCanvasPointer(event) {
     state.selectedTileId = hit.id;
     const tile = state.players[0].hand.find(item => item.id === hit.id);
     playSound("select");
-    setMessage(`选择 ${tileName(tile)}`, "再点一次出牌，或点拆牌/胡牌");
+    setMessage(tr("messages.selectTile", tileName(tile)), tr("messages.selectTileSub"));
     render();
   }
 }
@@ -1284,7 +1761,7 @@ actionBar.addEventListener("click", event => {
     const fallback = selected || chooseAIDiscard(state.players[0].hand);
     if (fallback) {
       discardTile(0, fallback.id);
-      setMessage("托管出牌", `打出 ${tileName(fallback)}，进入下一家`);
+      setMessage(tr("messages.autoPass"), tr("messages.autoPassSub", tileName(fallback)));
       render();
       window.setTimeout(nextTurn, 260);
     }
@@ -1297,11 +1774,57 @@ actionBar.addEventListener("click", event => {
     }
     else {
       playSound("error");
-      setMessage("暂时不能胡", "继续运营羁绊和海克斯");
+      setMessage(tr("messages.cannotWin"), tr("messages.cannotWinSub"));
     }
   }
   if (action === "vitality" && canUseVitality()) useVitality();
   if (action === "cookie" && canUseCookie()) useCookie();
+});
+
+skillBadges.addEventListener("click", event => {
+  const cityBadge = event.target?.closest?.("button[data-city-detail]");
+  if (cityBadge) {
+    primeAudio();
+    showCityDetail();
+    return;
+  }
+  const badge = event.target?.closest?.("button[data-skill-id]");
+  if (!badge) return;
+  primeAudio();
+  showSkillDetail(badge.dataset.skillId);
+});
+
+skillDetailClose.addEventListener("click", () => {
+  primeAudio();
+  hideSkillDetail();
+});
+
+skillDetailOverlay.addEventListener("click", event => {
+  if (event.target !== skillDetailOverlay) return;
+  primeAudio();
+  hideSkillDetail();
+});
+
+manualOpen.addEventListener("click", event => {
+  event.stopPropagation();
+  primeAudio();
+  showManual();
+});
+
+manualClose.addEventListener("click", () => {
+  primeAudio();
+  hideManual();
+});
+
+manualOverlay.addEventListener("click", event => {
+  if (event.target !== manualOverlay) return;
+  primeAudio();
+  hideManual();
+});
+
+languageToggle.addEventListener("click", () => {
+  primeAudio();
+  toggleLanguage();
 });
 
 resultRestart.addEventListener("click", () => {
@@ -1325,13 +1848,13 @@ function requestStartGame(event) {
   const now = Date.now();
   if (now - lastStartRequestAt < 250) return;
   lastStartRequestAt = now;
-  setMessage("正在开始游戏", "正在发牌和生成海克斯牌局");
+  setMessage(tr("messages.starting"), tr("messages.startingSub"));
   try {
     startGame();
   } catch (error) {
     console.error(error);
     playSound("error");
-    setMessage("开局失败", error?.message || String(error));
+    setMessage(tr("messages.startFail"), error?.message || String(error));
   }
 }
 
@@ -1448,5 +1971,6 @@ document.addEventListener("keydown", primeAudio, { once: true });
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("orientationchange", () => window.setTimeout(resizeCanvas, 120));
 
+renderManual();
 resizeCanvas();
 showCitySelection();
