@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>我梦见了一款游戏，于是把它 coding 了出来：海克斯麻将 H5 的诞生</title>
+</head>
+<body style="margin: 0; background: #f6f8f7;">
+<section style="max-width: 680px; margin: 0 auto; padding: 0 14px 28px; color: #1f2933; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; line-height: 1.86; font-size: 16px;">
+  <section style="margin: 14px 0 24px; padding: 28px 22px 24px; border-radius: 16px; background: linear-gradient(135deg, #071817 0%, #12352d 58%, #0b1d26 100%); color: #f8fbf2; box-shadow: 0 12px 34px rgba(9, 24, 27, 0.22);">
+    <p style="display: inline-block; margin: 0 0 14px; padding: 4px 10px; border: 1px solid rgba(192, 246, 210, 0.45); border-radius: 999px; color: #c9f7d6; background: rgba(255, 255, 255, 0.08); font-size: 13px; letter-spacing: 0.5px;">悖论矩阵 · AI 原生小游戏实验</p>
+    <h1 style="margin: 0; color: #ffffff; font-size: 29px; line-height: 1.32; font-weight: 900; letter-spacing: 0;">我梦见了一款游戏，于是把它 coding 了出来：海克斯麻将 H5 的诞生</h1>
+    <p style="margin: 16px 0 0; color: #d8efe4;">这篇文章想聊聊《海克斯麻将 H5》是怎么来的：一个半夜醒来的梦，一段手机里的 AI 语音记录，最后真的变成了一个能打开玩的网页小游戏。</p>
+  </section>
+
+  <section style="margin: 26px 0; padding: 18px 18px; background: #f5f8fa; border-left: 4px solid #1f7a5b; border-radius: 8px;">
+    <p style="margin: 0;">5 月 31 日，我在 Wayto AGI AI 切磋大会北京会场分享了这个作品。其实这个游戏最早不是从策划文档开始的，而是从我手机备忘录里一句有点中二、但很真实的话开始的：“我梦见了一款游戏，于是我把它 coding 了出来。”</p>
+  </section>
+
+  <section style="margin: 24px 0; padding: 18px; background: #0f1720; color: #f7fbff; border-radius: 10px;">
+    <p style="margin: 0 0 12px; color: #b7c4cf; font-size: 14px;">5 月 31 日临时备忘录里的原始版本，大概是这样的：</p>
+    <p style="margin: 0 0 10px;">前一阵子有天晚上和朋友打麻将，因为很久没打，但公式还记得，回来很久，睡得也比较晚。</p>
+    <p style="margin: 0 0 10px;">当天在此前我已经连续打了一下午的海克斯大乱斗，于是梦见了一个二者组合型的一块游戏。</p>
+    <p style="margin: 0;">我惊醒了，打开手机 AI 对话，开始语音转文字，把我刚刚所梦给记录了下来。我还在想，不如再续个梦？可惜，睡不着啦。</p>
+  </section>
+
+  <p>如果用一句话介绍它：</p>
+  <p style="font-size: 18px; font-weight: 700; color: #123047;">《海克斯麻将 H5》是一款把麻将摸打、云顶之弈式海克斯强化、城邦规则和羁绊得分结合起来的网页小游戏。</p>
+
+  <p>简单说，开局先选一个城邦，决定这一把的底层规则；然后再选海克斯，给自己拿一个强化。进了牌桌以后，你和 3 个 AI 轮流摸牌、出牌、换牌、胡牌。它还是麻将那套“我这张到底留不留”的纠结，但每局都会因为城邦和海克斯变得不太一样。</p>
+
+  <p>我那天备忘录里还顺手写了几个问题：这个游戏是怎么改出来的？我怎么把它 coding 出来的？到底怎么玩？规则怎么判？这篇就按这个顺序来讲，尽量不写成那种干巴巴的项目介绍。</p>
+
+  <p style="text-align: center; margin: 28px 0 8px; padding: 8px; background: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(16, 32, 51, 0.08);">
+    <img src="wechat-article-assets/01-city-selection.png" alt="海克斯麻将城邦选择界面" style="display: block; width: 100%; border-radius: 8px; border: 1px solid #d8e8e0; box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14);" />
+  </p>
+  <p style="margin: 0 0 30px; color: #70838d; font-size: 13px; text-align: center;">开局先选城邦：第一层全局规则决定整局节奏。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">一、这个游戏是怎么来的：先是一个梦，然后是一段 AI 对话</h2>
+
+  <p>麻将好玩的地方，对我来说就是那种小纠结。你永远不知道下一张会摸什么，但你又一直在做判断：这个对子要不要留？这个顺子差一张，要不要等？这张牌现在看着没用，但会不会后面突然救命？</p>
+
+  <p>云顶之弈吸引我的地方也很直接：它让每一局都有点不一样。开局一个城邦，中途几个海克斯，手里一堆零散资源，慢慢就会变成“我这一局想走什么路”。这个感觉很上头。</p>
+
+  <p>所以我最初的想法很直接：如果麻将也有城邦和海克斯，会怎么样？</p>
+
+  <p>但这个想法真不是我坐在电脑前憋出来的。前一阵晚上刚和朋友打过麻将，很久没打了，但对子、顺子、刻子这些东西还在脑子里转。另一边，我那天下午又打了很久的海克斯大乱斗。结果睡着以后，脑子自己把这两个东西拼到了一起：麻将也能不能有海克斯？也能不能每局先选一个规则？</p>
+
+  <p>我醒来的时候其实挺兴奋，也有点怕忘。以前这种东西我大概率会想：明天再记吧。然后第二天醒来，只剩一个“我好像梦到了个挺好玩的东西”。这次我直接打开手机 AI 对话，用语音转文字把梦先说下来。哪怕说得很乱，至少它被留下来了。</p>
+
+  <p>后面再想，其实麻将本身已经很稳了：花色、对子、顺子、刻子、胡牌，这套东西很耐玩。问题是新玩家有时候会懵，不知道自己到底该往哪走。云顶那套海克斯刚好能补这个点：你这一局选了什么，就先围着它打。目标一下子清楚很多。</p>
+
+  <p>所以《海克斯麻将》一开始就不是想做“正统麻将改造”。我更想做的是：把麻将成型的爽感拿出来，再塞进一个网页小游戏里，让人打开就能选、能打、能看懂自己这一局在干嘛。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">二、第一层：城邦，让一局游戏先有主题</h2>
+
+  <p>现在这个版本里，第一步就是选城邦。你可以把它理解成“这一把先定个大规矩”。有的城邦更接近传统麻将，有的会多给混子，有的逼你走清一色，还有的每隔几轮就搞一次换牌。</p>
+
+  <p>比如“祖安实验室”会多一张城邦混子，你会更容易成型，但 AI 也不是傻子，它也会吃到这个收益；“艾欧尼亚道场”就很狠，只能胡清一色，你从一开始就得想清楚自己要哪门花色；“班德尔城传送门”每 3 轮会随机和 AI 换一张牌，局面会突然歪一下。</p>
+
+  <p>我不想让城邦只是换个背景图。它应该是你这一局的开场白：选完以后，你心里大概知道这局会往哪个方向跑。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">三、第二层：海克斯，让麻将有了运营路线</h2>
+
+  <p>选完城邦，就会进入海克斯三选一。第 1、3、6 轮都会出现一次，最多拿 3 个。这个灵感很明显来自云顶，但放进麻将里不能太放飞，因为麻将自己已经够烧脑了。</p>
+
+  <p>目前版本里的海克斯大致分成几类：</p>
+
+  <ul style="padding: 14px 18px 14px 34px; margin: 16px 0; background: #f8fbfa; border: 1px solid #e1ece7; border-radius: 10px; color: #273845;">
+    <li><strong>主动操作型：</strong>例如“饼干海克斯”，每 3 轮可以拆一次牌，把 3 以上的筒/条拆成两张 1 和一张余数牌。</li>
+    <li><strong>手牌优化型：</strong>例如“活力再生”，可以弃两张孤牌换摸两张，冷却 2 轮。</li>
+    <li><strong>经济型：</strong>例如“千丝增幅器”“铜墙铁饼”“万法归宗”，立即获得对应花色 3 张牌，帮助玩家更快成型。</li>
+    <li><strong>规则补强型：</strong>例如“混子成双”，额外加入一张指定混子牌，让本局出现更明确的万能牌来源。</li>
+  </ul>
+
+  <p style="text-align: center; margin: 28px 0 8px; padding: 8px; background: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(16, 32, 51, 0.08);">
+    <img src="wechat-article-assets/03-augment-selection.png" alt="海克斯麻将海克斯选择界面" style="display: block; width: 100%; border-radius: 8px; border: 1px solid #d8e8e0; box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14);" />
+  </p>
+  <p style="margin: 0 0 30px; color: #70838d; font-size: 13px; text-align: center;">海克斯三选一：玩家不是只在摸牌，而是在选择一条运营路线。</p>
+
+  <p>我觉得这里最好玩的点是：它让同一个麻将底子，变成了很多种开局。你这一局可能靠混子抢速度，下一局可能被迫清一色，再下一局可能拿经济型海克斯快速补牌。按钮没变复杂，但每局的想法会变。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">四、第三层：真正的对局，仍然要保留麻将的判断</h2>
+
+  <p>进了牌桌以后，其实还是那些最基础的事：摸牌、看牌、选牌、出牌、能胡就胡。玩家的手牌在下面，三个 AI 在左右和上方，牌山、倒计时、当前城邦、海克斯阶段都放在牌桌上。</p>
+
+  <p>这里我一直在改一个问题：别让玩家一下子看到太多按钮。现在只有能用的操作才会出现，比如活力、拆牌、胡牌。系统觉得你现在能触发某个操作，底部才会提示，对应的手牌也会亮一下。</p>
+
+  <p>前面我还专门改过提示条的位置。它一开始会挡住牌，看着就难受。麻将游戏最核心的就是看自己的手牌，任何东西挡在上面都会影响判断。现在提示条放到手牌和按钮之间，能提醒，但不抢视线。</p>
+
+  <p style="text-align: center; margin: 28px 0 8px; padding: 8px; background: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(16, 32, 51, 0.08);">
+    <img src="wechat-article-assets/04-gameplay-table.png" alt="海克斯麻将对局界面" style="display: block; width: 100%; border-radius: 8px; border: 1px solid #d8e8e0; box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14);" />
+  </p>
+  <p style="margin: 0 0 30px; color: #70838d; font-size: 13px; text-align: center;">对局中：手牌、行动提示、活力操作、倒计时和右上角详情入口。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">五、混子必须讲清楚：规则越特殊，说明越要透明</h2>
+
+  <p>麻将里只要出现“混子”，玩家马上就会问：哪张是混子？几张？从哪来的？这个东西如果不说清楚，后面所有输赢都会变得不踏实。</p>
+
+  <p>所以我现在把混子写得很死：固定混子是筒5，祖安实验室会额外加条5，混子成双会额外加万5。对局里点右上角的城邦徽章，就能重新看本局有哪些混子。如果拿了“混子成双”，海克斯详情里也会写清楚是哪一张。</p>
+
+  <p style="text-align: center; margin: 28px 0 8px; padding: 8px; background: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(16, 32, 51, 0.08);">
+    <img src="wechat-article-assets/05-joker-detail.png" alt="海克斯麻将混子详情" style="display: block; width: 100%; border-radius: 8px; border: 1px solid #d8e8e0; box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14);" />
+  </p>
+  <p style="margin: 0 0 30px; color: #70838d; font-size: 13px; text-align: center;">规则详情：固定混子、城邦额外混子都会列出确切牌面。</p>
+
+  <p>这个细节看起来不大，但很关键。玩家可以输，可以被 AI 胡，也可以因为自己拆错牌懊恼一下。但不能让玩家觉得：等会儿，这规则到底是不是偷偷变了？</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">六、说明书不是补丁，而是游戏入口的一部分</h2>
+
+  <p>这次我还在开局前加了“玩法说明”。因为这个游戏虽然是麻将底子，但又加了城邦、海克斯、混子、羁绊，新玩家不看说明很容易一脸问号。</p>
+
+  <p>所以我把胡牌公式也写进去了，尽量用最直白的方式说：</p>
+
+  <ul style="padding: 14px 18px 14px 34px; margin: 16px 0; background: #f8fbfa; border: 1px solid #e1ece7; border-radius: 10px; color: #273845;">
+    <li><strong>AAA：</strong>三张一样，例如 3筒3筒3筒。</li>
+    <li><strong>ABC：</strong>同花色连续三张，例如 2条3条4条。</li>
+    <li><strong>XX：</strong>对子，例如 8万8万。</li>
+    <li><strong>J：</strong>混子，可以补缺口。</li>
+    <li><strong>标准理解：</strong>AAA + BBB + ABC + ABC + XX，也就是 4 组牌 + 1 对。</li>
+    <li><strong>七对子：</strong>XX + XX + XX + XX + XX + XX + XX。</li>
+    <li><strong>四刻成型：</strong>AAA + BBB + CCC + DDD，AA + J 或 A + J + J 可以补刻。</li>
+  </ul>
+
+  <p>我还把更新日志也塞进了说明书。原因很简单：这个游戏后面还会一直改，玩家进来能看到我最近到底动了哪些地方。</p>
+
+  <p style="text-align: center; margin: 28px 0 8px; padding: 8px; background: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(16, 32, 51, 0.08);">
+    <img src="wechat-article-assets/02-manual-formulas.png" alt="海克斯麻将玩法说明和胡牌公式" style="display: block; width: 100%; border-radius: 8px; border: 1px solid #d8e8e0; box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14);" />
+  </p>
+  <p style="margin: 0 0 30px; color: #70838d; font-size: 13px; text-align: center;">说明书：胡牌公式、对局提示和更新日志都放在游戏内。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">七、为什么要做中英双语实时切换</h2>
+
+  <p>这个游戏一开始肯定是中文语境里的东西。麻将、海克斯、城邦，这几个词中文玩家一看就大概能懂。但它毕竟是网页游戏，我也希望以后不只是熟人打开看看。</p>
+
+  <p>所以我做了中英切换。右上角点一下就能切，浏览器也会记住。这个功能听起来不大，但对一个独立作品很有用：至少陌生人点进来，不会因为语言直接被挡在门外。</p>
+
+  <p style="text-align: center; margin: 28px 0 8px; padding: 8px; background: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(16, 32, 51, 0.08);">
+    <img src="wechat-article-assets/06-english-toggle.png" alt="海克斯麻将英文界面" style="display: block; width: 100%; border-radius: 8px; border: 1px solid #d8e8e0; box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14);" />
+  </p>
+  <p style="margin: 0 0 30px; color: #70838d; font-size: 13px; text-align: center;">英文界面：同一套玩法可以实时切换语言。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">八、我是怎么 coding 出来的：AI 不是魔法，是把迭代距离压短</h2>
+
+  <p>这次做下来，我对 AI coding 的感觉也更具体了。它不是“我一句话，AI 直接变出一个完整游戏”。真不是。更像是我脑子里有一个很乱的东西，然后 AI 帮我一块一块拆：先写玩法白皮书，再搭页面，再做 Canvas 牌桌，再写状态机，再补 AI 对手，再做海克斯选择，再改说明书、混子详情、中英切换。</p>
+
+  <p>一个人做东西最容易卡住的地方，其实不是某一行代码写不出来，而是你不知道下一步该拆哪。AI 对话在这里很有用：我说一个体验问题，它能帮我翻成具体改动；我说一个玩法想法，它能帮我变成状态和规则。</p>
+
+  <p>比如提示条挡住手牌，我就改位置；玩家对局里想回看海克斯，我就让右上角徽章能点；混子成双说不清楚，我就把它改成“额外混子必须指向具体一张牌”。这些都不是一步到位的神迹，就是不断发现问题、改问题。</p>
+
+  <p>所以我更愿意说，我是把它 coding 出来的。梦给了一个开头，AI 帮我把速度拉起来，代码把它变成能玩的东西，玩家反馈再继续把它往前推。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">九、它现在完成到了什么程度</h2>
+
+  <p>现在这个版本，已经不只是一个摆在那看的页面了。它是真的可以玩一局的 H5 原型，里面已经有这些东西：</p>
+
+  <ul style="padding: 14px 18px 14px 34px; margin: 16px 0; background: #f8fbfa; border: 1px solid #e1ece7; border-radius: 10px; color: #273845;">
+    <li>开局选择城邦。</li>
+    <li>第 1、3、6 轮海克斯三选一。</li>
+    <li>玩家与 3 名 AI 轮流摸牌、出牌。</li>
+    <li>手牌高亮、可用操作提示、倒计时自动托管。</li>
+    <li>混子牌面显示与来源说明。</li>
+    <li>胡牌判定、得分反馈、羁绊展示。</li>
+    <li>Canvas 绘制麻将牌面和牌桌。</li>
+    <li>WebAudio 生成点击、摸牌、出牌、倒计时、胜负反馈音效。</li>
+    <li>移动端触感反馈与网页适配。</li>
+    <li>README 与游戏内说明同步更新日志。</li>
+  </ul>
+
+  <p>当然，它还不是商业游戏那种完成度。我也不想硬吹成什么大作。更准确地说，它现在是一个已经能跑起来、能玩、能继续改的版本。对我来说，这就已经很重要了：一个半夜的想法，没有停在“我有个点子”，而是真的变成了别人可以打开试玩的东西。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">十、在 Wayto AGI 分享后，我重新理解了这个项目</h2>
+
+  <p>5 月 31 日在 Wayto AGI AI 切磋大会北京会场分享这个游戏时，我发现大家关心的不只是“你做了个小游戏啊”，而是更想知道：你怎么从一个梦，真的走到一个能玩的页面？</p>
+
+  <p>以前做一个玩法原型，很多时候还没做到能玩，热情已经被各种杂事消耗掉了。要写策划，要搭工程，要画界面，要补状态，要改 bug。AI 这次给我的最大帮助，是让我更快地看到结果：第一屏像不像游戏？玩家能不能看懂？海克斯选完有没有变化？提示条会不会挡牌？这些问题不用在脑子里空想，可以直接在页面上试。</p>
+
+  <p>这也是我为什么把它放进“悖论矩阵”。它不是单独一个小游戏，而是一个小实验：我能不能把一个想法做出来，放到网站上，写成文章，拿去现场分享，再根据反馈继续改？这条链路跑通一次，就会很有意思。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">十一、为什么我觉得它适合拿出去讲</h2>
+
+  <p><strong>亮点：</strong>它把麻将和云顶之弈这两个大家都很熟的东西放到了一起，但不是简单套皮。城邦、海克斯、混子、羁绊，最后都还是围着“摸牌、出牌、成型、胡牌”这件事转。</p>
+
+  <p><strong>趣味性：</strong>每一局会有不同味道。选祖安就是混子局，选艾欧尼亚就是清一色压力局，拿饼干就是拆牌局，拿经济型海克斯就是快速补牌局。玩完一把，很容易想试试另一种组合。</p>
+
+  <p><strong>完成度：</strong>它现在已经能进、能选、能打、能看说明、能看结算，也能中英切换。作为一个 H5 原型，它不是只有截图，而是真的可以打开玩。</p>
+
+  <p><strong>好讲的地方：</strong>“麻将 × 海克斯 × H5 × AI coding”这个组合本身就有记忆点。游戏玩家能听懂，AI 创作者也能看到一个很具体的例子：AI 不只是写几段文案，它也能帮一个人把想法往真实产品上推一截。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">十二、下一步我想继续补什么</h2>
+
+  <p>后面我还想继续补一些更方便玩家理解局势的功能，比如：</p>
+
+  <ul style="padding: 14px 18px 14px 34px; margin: 16px 0; background: #f8fbfa; border: 1px solid #e1ece7; border-radius: 10px; color: #273845;">
+    <li>更清晰的羁绊追踪器，让玩家看到当前手牌离某个羁绊还差什么。</li>
+    <li>听牌/成型辅助提示，帮助新玩家理解哪些牌是关键张。</li>
+    <li>AI 对手信息面板，让玩家能观察其他三家的运营状态。</li>
+    <li>海克斯详情和城邦详情继续完善，所有特殊规则都能随时回看。</li>
+    <li>移动端按钮和手牌区域继续打磨，避免任何提示遮挡核心牌面。</li>
+    <li>更多城邦主题，让每个城邦不仅有规则差异，也有更鲜明的局内事件。</li>
+  </ul>
+
+  <p>但我也不想把它堆成一个按钮特别多的东西。更理想的是，每加一个功能，都能让玩家更快看懂自己这局该怎么打，而不是更晕。</p>
+
+  <h2 style="margin: 38px 0 16px; padding: 0 0 0 12px; border-left: 4px solid #1f7a5b; color: #102033; font-size: 22px; line-height: 1.42; font-weight: 850;">结尾：有些梦，真的可以先做出来再说</h2>
+
+  <p>《海克斯麻将 H5》对我来说，不只是一个小游戏。它更像是在提醒我：有些想法不用等到想得特别完美再开始。先记下来，先做一版，先让它能被打开。</p>
+
+  <p>因为只有别人真的点进来，选一次城邦，拿一次海克斯，打一张牌，你才会知道它哪里有意思，哪里看不懂，哪里还得继续改。</p>
+
+  <p>这也是我理解的“悖论矩阵”：少一点空谈，多做一点能被打开、能被试玩、能被讨论的东西。哪怕它一开始只是半夜醒来的一句话。</p>
+
+  <section style="margin: 30px 0 8px; padding: 18px; background: #102033; color: #f7fbff; border-radius: 10px;">
+    <p style="margin: 0 0 8px; font-weight: 700; font-size: 18px;">作品入口</p>
+    <p style="margin: 0;">海克斯麻将 H5：<a href="https://hexmahjong.fun/" style="color: #b9f3d2; text-decoration: underline;">https://hexmahjong.fun/</a></p>
+  </section>
+
+  <p style="margin: 22px 0 0; color: #6b7c88; font-size: 14px;">作者：悖论矩阵。持续记录 AI 原生产品、独立开发、游戏化创作和个人网站实验。</p>
+</section>
+</body>
+</html>

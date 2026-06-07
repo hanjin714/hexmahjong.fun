@@ -1,5 +1,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const app = document.getElementById("app");
+const orientationHint = document.getElementById("orientationHint");
 const overlay = document.getElementById("overlay");
 const overlayTitle = document.getElementById("overlayTitle");
 const overlayHint = document.getElementById("overlayHint");
@@ -52,6 +54,7 @@ const i18n = {
     langToggle: "EN",
     title: "海克斯麻将 H5",
     canvasLabel: "海克斯麻将牌桌",
+    orientationHint: "手机横屏视图",
     overlay: {
       cityTitle: "选择城邦",
       cityHint: "第一层全局规则会改变整局节奏。",
@@ -71,8 +74,8 @@ const i18n = {
         ["城邦规则", ["净水监狱：传统规则，无海克斯，适合先熟悉摸打。", "皮尔特沃夫金库：每轮筹码主题，当前保留为强化入口。", "祖安实验室：加入城邦额外混子，成型更快但 AI 也更危险。", "艾欧尼亚道场：只能胡清一色，需要提前规划花色。", "诺克萨斯角斗场：点炮惩罚主题，当前保留为后续结算扩展。", "班德尔城传送门：每 3 轮随机和一名 AI 交换一张手牌。"]],
         ["海克斯强化", ["饼干海克斯：主动，每 3 轮一次，将 3 以上的筒/条拆成两张 1 和一张余数牌。", "混子成双：被动，额外加入一张指定混子牌，可在右上角详情查看。", "千丝增幅器、铜墙铁饼、万法归宗：经济型海克斯，立即获得对应花色 3 张牌。", "活力再生：主动，弃两张孤牌换摸两张，冷却 2 轮。", "全能吸血：反应型路线展示，后续会扩展拿牌效果。"]],
         ["胡牌公式", ["公式符号：AAA=三张一样，ABC=同花色连续三张，XX=对子，J=混子。", "标准理解：4 组牌 + 1 对，例如 AAA + BBB + ABC + ABC + XX。当前原型用更快的牌型判定来适配 H5 节奏。", "清一色大成：同一花色覆盖 1-9，例如 1筒2筒3筒...9筒；缺口可用 J 补。", "七对子：XX + XX + XX + XX + XX + XX + XX，J + J 也能算一对。", "四刻成型：AAA + BBB + CCC + DDD；AA + J 或 A + J + J 可补刻。", "偏门成势：同一花色牌 + J >= 10，作为低门槛成型出口。", "羁绊额外加分：万法归一、千丝万缕、圆满无缺、三花聚顶、四喜临门。"]],
-        ["对局提示", ["右上角海克斯徽章可以点击查看详情。", "可拆、将弃、新摸牌会在手牌上高亮。", "底部胶囊提示会展示当前可胡、可拆或活力换牌结果。", "结算会展示最终牌型、分数、触发羁绊和最终手牌。"]],
-        ["更新日志", ["2026-06-02：新增中英双语实时切换。", "新增玩法说明书、胡牌公式、城邦详情和海克斯详情。", "明确本局混子来源：固定混子筒5、祖安额外混子条5、混子成双额外混子万5。", "饼干海克斯改为每 3 轮拆一次；三种给牌海克斯标记为经济型。", "优化底部提示条位置，避免遮挡手牌。"]]
+        ["对局提示", ["右上角海克斯徽章可以点击查看详情。", "可拆、将弃、新摸牌会在手牌上高亮。", "手机竖屏访问时会自动进入横屏游戏视图，桌面端保持原布局。", "底部胶囊提示会展示当前可胡、可拆或活力换牌结果。", "结算会展示最终牌型、分数、触发羁绊和最终手牌。"]],
+        ["更新日志", ["2026-06-08：新增移动端横屏适配，手机竖屏访问时自动进入横屏游戏视图。", "修复短屏横屏下城邦/海克斯选择层与 HUD 重叠的问题。", "2026-06-02：新增中英双语实时切换。", "新增玩法说明书、胡牌公式、城邦详情和海克斯详情。", "明确本局混子来源：固定混子筒5、祖安额外混子条5、混子成双额外混子万5。", "饼干海克斯改为每 3 轮拆一次；三种给牌海克斯标记为经济型。", "优化底部提示条位置，避免遮挡手牌。"]]
       ]
     },
     suits: { character: "筒", bamboo: "条", wan: "万" },
@@ -171,6 +174,7 @@ const i18n = {
     langToggle: "中",
     title: "Hex Mahjong H5",
     canvasLabel: "Hex Mahjong table",
+    orientationHint: "Landscape view",
     overlay: {
       cityTitle: "Choose City-State",
       cityHint: "Pick the global rule that shapes this run.",
@@ -190,8 +194,8 @@ const i18n = {
         ["City-State Rules", ["Purewater Prison: classic rules, no augments.", "Piltover Vault: economy theme, reserved for future chip systems.", "Zaun Lab: adds a city bonus joker, faster hands for everyone.", "Ionia Dojo: only flush-style wins are allowed.", "Noxus Arena: discard penalty theme, reserved for future scoring.", "Bandle Portal: every 3 rounds, swap one random tile with an AI."]],
         ["Hex Augments", ["Cookie Hex: active, once every 3 rounds, split a Dot/Bamboo tile rank 3+ into two 1s and a remainder tile.", "Joker Double: passive, adds one specified joker tile; review it from the top-right details.", "Silk Amplifier, Bronze Wall, and Ten Thousand Law are economy augments that grant 3 suited tiles.", "Vitality Regen: active, discard two isolated tiles and draw two, cooldown 2 rounds.", "Omnivamp: reaction route preview, future version will expand steal effects."]],
         ["Winning Formula", ["Symbols: AAA = triplet, ABC = same-suit sequence, XX = pair, J = joker.", "Standard shape: 4 groups + 1 pair, such as AAA + BBB + ABC + ABC + XX. This prototype uses faster pattern checks for H5 pacing.", "Full Flush: one suit covers ranks 1-9, such as Dot1-Dot9; J can fill missing ranks.", "Seven Pairs: XX + XX + XX + XX + XX + XX + XX; J + J can count as one pair.", "Four Triplets: AAA + BBB + CCC + DDD; AA + J or A + J + J can complete a triplet.", "Off-Suit Momentum: same-suit tiles + J >= 10, a lower-threshold win route.", "Traits add bonus score: suit routes, Three Flowers, and Four Joy."]],
-        ["Game Tips", ["Click the augment badges on the top right to review details.", "Splittable, discard-targeted, and newly drawn tiles are highlighted.", "The bottom prompt previews win, split, or vitality outcomes.", "The result screen shows pattern, score, traits, and final hand."]],
-        ["Changelog", ["2026-06-02: Added real-time Chinese/English language switching.", "Added the in-game manual, winning formulas, city details, and augment details.", "Clarified joker sources: fixed Dot5, Zaun bonus Bamboo5, Joker Double bonus Wan5.", "Cookie Hex now has a 3-round cooldown; three tile-grant augments are marked as economy augments.", "Moved the bottom prompt so it no longer blocks the hand."]]
+        ["Game Tips", ["Click the augment badges on the top right to review details.", "Splittable, discard-targeted, and newly drawn tiles are highlighted.", "Phones in portrait enter a landscape game view automatically; desktop stays unchanged.", "The bottom prompt previews win, split, or vitality outcomes.", "The result screen shows pattern, score, traits, and final hand."]],
+        ["Changelog", ["2026-06-08: Added mobile landscape adaptation for phones in portrait orientation.", "Fixed city/augment selection overlap with the HUD on short landscape screens.", "2026-06-02: Added real-time Chinese/English language switching.", "Added the in-game manual, winning formulas, city details, and augment details.", "Clarified joker sources: fixed Dot5, Zaun bonus Bamboo5, Joker Double bonus Wan5.", "Cookie Hex now has a 3-round cooldown; three tile-grant augments are marked as economy augments.", "Moved the bottom prompt so it no longer blocks the hand."]]
       ]
     },
     suits: { character: "Dot", bamboo: "Bamboo", wan: "Wan" },
@@ -906,6 +910,7 @@ function renderManual() {
   actionBar.setAttribute("aria-label", currentLang === "zh" ? "游戏操作" : "Game actions");
   augmentTrack.setAttribute("aria-label", currentLang === "zh" ? "海克斯阶段" : "Augment stages");
   languageToggle.textContent = tr("langToggle");
+  orientationHint.textContent = tr("orientationHint");
   manualOpen.textContent = tr("overlay.manual");
   overlayConfirm.textContent = tr("overlay.confirm");
   manualClose.setAttribute("aria-label", tr("manual.close"));
@@ -1142,19 +1147,46 @@ function autoDiscardForTimeout() {
   window.setTimeout(nextTurn, 260);
 }
 
+function isMobileViewport() {
+  return window.matchMedia?.("(hover: none) and (pointer: coarse)")?.matches || Math.min(window.innerWidth, window.innerHeight) <= 720;
+}
+
+function shouldForceLandscape() {
+  return isMobileViewport() && window.innerHeight > window.innerWidth;
+}
+
+function viewportSize() {
+  const forced = shouldForceLandscape();
+  return {
+    forced,
+    w: forced ? window.innerHeight : window.innerWidth,
+    h: forced ? window.innerWidth : window.innerHeight
+  };
+}
+
+function syncOrientationMode() {
+  const { forced, w, h } = viewportSize();
+  document.body.classList.toggle("force-landscape", forced);
+  app.classList.toggle("force-landscape", forced);
+  app.style.width = forced ? `${w}px` : "";
+  app.style.height = forced ? `${h}px` : "";
+  orientationHint.hidden = !forced;
+}
+
 function resizeCanvas() {
+  syncOrientationMode();
+  const size = viewportSize();
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.floor(window.innerWidth * dpr);
-  canvas.height = Math.floor(window.innerHeight * dpr);
-  canvas.style.width = `${window.innerWidth}px`;
-  canvas.style.height = `${window.innerHeight}px`;
+  canvas.width = Math.floor(size.w * dpr);
+  canvas.height = Math.floor(size.h * dpr);
+  canvas.style.width = `${size.w}px`;
+  canvas.style.height = `${size.h}px`;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   render();
 }
 
 function layout() {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+  const { w, h } = viewportSize();
   const landscape = w > h;
   const safeTop = 62;
   const actionReserve = landscape ? 150 : 178;
@@ -1728,8 +1760,11 @@ function optionButton(title, desc, color) {
 function handleCanvasPointer(event) {
   if (state.phase !== "playing" || state.currentPlayer !== 0) return;
   const rect = canvas.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
+  const size = viewportSize();
+  const sx = event.clientX - rect.left;
+  const sy = event.clientY - rect.top;
+  const x = size.forced ? (sy / rect.height) * size.w : sx;
+  const y = size.forced ? ((rect.width - sx) / rect.width) * size.h : sy;
   const hit = state.tileRects.find(item => x >= item.x && x <= item.x + item.w && y >= item.y - 12 && y <= item.y + item.h);
   if (!hit) return;
   if (state.selectedTileId === hit.id) {

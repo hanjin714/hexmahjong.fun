@@ -43,6 +43,27 @@ button {
   background: radial-gradient(circle at center, #18734a 0%, var(--felt) 52%, var(--felt-dark) 100%);
 }
 
+.orientation-hint {
+  position: absolute;
+  z-index: 11;
+  left: 50%;
+  top: max(8px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  border: 1px solid rgba(214, 180, 90, 0.42);
+  border-radius: 999px;
+  background: rgba(4, 15, 18, 0.66);
+  color: #fff4c6;
+  font-size: 11px;
+  font-weight: 900;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.orientation-hint[hidden] {
+  display: none;
+}
+
 #gameCanvas {
   position: absolute;
   inset: 0;
@@ -367,6 +388,7 @@ button.badge:active {
 
 .overlay {
   position: absolute;
+  z-index: 4;
   inset: 0;
   display: grid;
   place-items: center;
@@ -1065,4 +1087,95 @@ button.badge:active {
     height: 43px;
     font-size: 13px;
   }
+}
+
+body.force-landscape {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+body.force-landscape .app {
+  width: 100vh;
+  height: 100vw;
+  transform: rotate(90deg) translateY(-100%);
+  transform-origin: top left;
+}
+
+body.force-landscape .hud {
+  grid-template-columns: minmax(210px, 1fr) auto minmax(260px, 1fr);
+  gap: 12px;
+}
+
+body.force-landscape .badges {
+  grid-column: auto;
+  justify-content: flex-end;
+  max-width: min(42vw, 620px);
+  overflow: visible;
+}
+
+body.force-landscape .badge {
+  min-width: 108px;
+  flex: 0 0 auto;
+}
+
+body.force-landscape .augment-track {
+  width: auto;
+  justify-content: center;
+  overflow: visible;
+}
+
+body.force-landscape .track-node {
+  min-width: 104px;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+}
+
+body.force-landscape .option-grid,
+body.force-landscape .option-grid.augment-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body.force-landscape .panel {
+  padding: 20px;
+}
+
+body.force-landscape .panel-heading {
+  flex-direction: row;
+  align-items: center;
+}
+
+body.force-landscape .manual-open {
+  width: auto;
+}
+
+body.force-landscape .manual-card {
+  max-height: 86vh;
+}
+
+body.force-landscape .manual-content {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: calc(86vh - 100px);
+}
+
+body.force-landscape .actions {
+  width: auto;
+  gap: 8px;
+  overflow: visible;
+}
+
+body.force-landscape .actions button {
+  min-width: 82px;
+  flex: 0 0 auto;
+}
+
+body.force-landscape .language-toggle {
+  top: calc(max(10px, env(safe-area-inset-top)) + 62px);
+  right: max(14px, env(safe-area-inset-right));
+  bottom: auto;
+}
+
+body.force-landscape .skill-detail-overlay {
+  place-items: start end;
+  padding: max(76px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }

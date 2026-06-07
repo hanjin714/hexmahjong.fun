@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>海克斯麻将公众号封面</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #0b1718;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    .cover {
+      position: relative;
+      width: 900px;
+      height: 383px;
+      overflow: hidden;
+      color: #f8fbf2;
+      background: #0b1718 url("./wechat-article-assets/wechat-cover-bg.png") center / cover no-repeat;
+    }
+
+    .cover::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(3, 12, 14, 0.92) 0%, rgba(6, 19, 22, 0.82) 28%, rgba(9, 24, 27, 0.34) 54%, rgba(9, 24, 27, 0.06) 100%),
+        radial-gradient(circle at 14% 50%, rgba(56, 190, 130, 0.22), transparent 34%);
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      width: 430px;
+      height: 100%;
+      padding: 42px 0 36px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .eyebrow {
+      width: fit-content;
+      padding: 5px 12px;
+      border: 1px solid rgba(202, 250, 224, 0.45);
+      border-radius: 999px;
+      color: #bff6d1;
+      background: rgba(8, 33, 28, 0.62);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      margin: 18px 0 0;
+      font-size: 54px;
+      line-height: 1.06;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .subtitle {
+      margin: 15px 0 0;
+      color: #d9f5e8;
+      font-size: 24px;
+      line-height: 1.35;
+      font-weight: 700;
+      text-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+    }
+
+    .footer {
+      margin-top: 22px;
+      color: rgba(238, 255, 244, 0.82);
+      font-size: 17px;
+      line-height: 1.35;
+      text-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+    }
+  </style>
+</head>
+<body>
+  <section class="cover" aria-label="海克斯麻将公众号封面">
+    <div class="content">
+      <div class="eyebrow">悖论矩阵</div>
+      <h1>我梦见了<br>一款游戏</h1>
+      <p class="subtitle">于是把它 coding 了出来</p>
+      <p class="footer">海克斯麻将 H5 · AI 原生小游戏实验</p>
+    </div>
+  </section>
+</body>
+</html>
